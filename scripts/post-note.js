@@ -10,41 +10,73 @@ const fs = require('fs');
   const page = await context.newPage();
 
   try {
-    await page.goto('https://note.com/new', { waitUntil: 'domcontentloaded' });
+    await page.goto('https://note.com/new', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.waitForTimeout(5000);
 
-    // note側のDOM変更に備え、候補を複数持たせる。
-    const title = page.locator('textarea, input').filter({ has: page.locator('xpath=..') }).first();
-    const editables = page.locator('[contenteditable="true"]');
+    console.log('Current URL:', page.url());
+    console.log('Page title:', await page.title());
 
-    if (await editables.count() < 1) {
-      throw new Error('本文入力欄を検出できません。noteの画面仕様を確認してください。');
+    if (!page.url().includes('note.com')) {
+      throw new Error(`note.comを開けませんでした: ${page.url()}`);
     }
 
-    // タイトル欄はplaceholder等を優先して探索。
     const titleCandidates = [
       page.getByPlaceholder(/タイトル/i),
+      page.locator('textarea[placeholder*="タイトル"]'),
+      page.locator('input[placeholder*="タイトル"]'),
       page.locator('textarea').first(),
       page.locator('input').first()
     ];
+
     let titleFilled = false;
     for (const candidate of titleCandidates) {
-      if (await candidate.count()) {
-        try {
-          await candidate.fill(post.title);
+      try {
+        if (await candidate.count()) {
+          await candidate.first().waitFor({ state: 'visible', timeout: 5000 });
+          await candidate.first().fill(post.title);
           titleFilled = true;
           break;
-        } catch (_) {}
-      }
+        }
+      } catch (_) {}
     }
-    if (!titleFilled) throw new Error('タイトル入力欄を検出できません。');
 
-    const body = editables.last();
-    await body.click();
-    await body.fill(post.body);
+    if (!titleFilled) {
+      await page.screenshot({ path: 'note-debug.png', fullPage: true });
+      throw new Error(`タイトル入力欄を検出できません。現在URL: ${page.url()}`);
+    }
 
-    // 初期版は安全のため公開操作をしない。
-    // noteの自動保存を待って終了する。
-    await page.waitForTimeout(5000);
+    const bodyCandidates = [
+      page.getByRole('textbox').filter({ hasNot: page.locator('textarea, input') }),
+      page.locator('[contenteditable="true"]'),
+      page.locator('[contenteditable="plaintext-only"]'),
+      page.locator('div[role="textbox"]')
+    ];
+
+    let bodyFilled = false;
+    for (const candidate of bodyCandidates) {
+      try {
+        const count = await candidate.count();
+        if (count > 0) {
+          const target = candidate.last();
+          await target.waitFor({ state: 'visible', timeout: 10000 });
+          await target.click();
+          try {
+            await target.fill(post.body);
+          } catch (_) {
+            await target.pressSequentially(post.body, { delay: 1 });
+          }
+          bodyFilled = true;
+          break;
+        }
+      } catch (_) {}
+    }
+
+    if (!bodyFilled) {
+      await page.screenshot({ path: 'note-debug.png', fullPage: true });
+      throw new Error(`本文入力欄を検出できません。現在URL: ${page.url()}`);
+    }
+
+    await page.waitForTimeout(8000);
     console.log('noteへの入力処理が完了しました。公開操作は行っていません。');
   } finally {
     await browser.close();
