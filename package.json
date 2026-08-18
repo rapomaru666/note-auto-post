@@ -1,0 +1,11 @@
+{
+  "name": "note-auto-post",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "post": "node scripts/post-note.js"
+  },
+  "dependencies": {
+    "playwright": "^1.55.0"
+  }
+}
