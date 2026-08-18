@@ -1,12 +1,31 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 
-async function clickFirstVisible(candidates, timeout = 12000) {
+async function clickFirstVisible(candidates) {
   for (const candidate of candidates) {
     try {
       const el = candidate.first();
       if (await el.isVisible({ timeout: 1500 }).catch(() => false)) {
         await el.click();
+        return true;
+      }
+    } catch (_) {}
+  }
+  return false;
+}
+
+async function fillFirstVisible(candidates, value) {
+  for (const candidate of candidates) {
+    try {
+      const count = await candidate.count();
+      for (let i = 0; i < count; i++) {
+        const el = candidate.nth(i);
+        if (!await el.isVisible().catch(() => false)) continue;
+        await el.click().catch(() => {});
+        await el.fill(value).catch(async () => {
+          await el.press('Control+A').catch(() => {});
+          await el.type(value, { delay: 30 });
+        });
         return true;
       }
     } catch (_) {}
@@ -41,11 +60,8 @@ async function clickFirstVisible(candidates, timeout = 12000) {
     await editor.click();
     await page.keyboard.type(post.body, { delay: 1 });
     console.log('本文入力完了');
-
-    // 入力内容がnote側へ反映されるまで待つ。
     await page.waitForTimeout(5000);
 
-    // 公開設定へ進む。現在のUI差異に備えて候補を複数持つ。
     const openedPublishSettings = await clickFirstVisible([
       page.getByRole('button', { name: /公開設定/ }),
       page.getByRole('button', { name: /公開に進む/ }),
@@ -55,41 +71,37 @@ async function clickFirstVisible(candidates, timeout = 12000) {
     if (!openedPublishSettings) throw new Error('公開設定ボタンを検出できません。');
     await page.waitForTimeout(3000);
 
-    // 販売設定を「有料」にする。
     const paidSelected = await clickFirstVisible([
-      page.getByRole('radio', { name: '有料' }),
-      page.getByRole('button', { name: '有料' }),
+      page.getByRole('radio', { name: /有料/ }),
+      page.getByRole('button', { name: /^有料$/ }),
       page.getByText('有料', { exact: true })
     ]);
     if (!paidSelected) throw new Error('販売設定「有料」を検出できません。');
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(2500);
 
-    // 価格100円を設定。
-    let priceFilled = false;
-    const priceCandidates = [
-      page.getByLabel(/価格/),
-      page.getByPlaceholder(/価格/),
+    // note公式UIでは「価格（円）」欄。ラベル・近接要素・汎用inputの順で探す。
+    const priceFilled = await fillFirstVisible([
+      page.getByLabel(/価格（円）|価格\(円\)|価格/),
+      page.getByPlaceholder(/価格|円/),
+      page.locator('label:has-text("価格")').locator('input'),
+      page.locator('text=価格').locator('xpath=following::input[1]'),
+      page.locator('input[inputmode="decimal"]'),
       page.locator('input[inputmode="numeric"]'),
-      page.locator('input[type="number"]')
-    ];
-    for (const candidate of priceCandidates) {
-      try {
-        const count = await candidate.count();
-        for (let i = 0; i < count; i++) {
-          const el = candidate.nth(i);
-          if (await el.isVisible().catch(() => false)) {
-            await el.fill('100');
-            priceFilled = true;
-            break;
-          }
-        }
-        if (priceFilled) break;
-      } catch (_) {}
-    }
-    if (!priceFilled) throw new Error('価格入力欄を検出できません。');
-    console.log('価格100円を設定');
+      page.locator('input[type="number"]'),
+      page.locator('input').filter({ hasNot: page.locator('[type="checkbox"],[type="radio"]') })
+    ], '100');
 
-    // 有料エリア設定。無料部分を残すため、可能なら数段落後にラインを置く。
+    if (!priceFilled) {
+      const inputs = await page.locator('input').evaluateAll(nodes => nodes.map(n => ({
+        type: n.type, name: n.name, placeholder: n.placeholder, value: n.value,
+        aria: n.getAttribute('aria-label'), inputmode: n.getAttribute('inputmode')
+      })));
+      console.log('検出したinput一覧:', JSON.stringify(inputs));
+      throw new Error('価格入力欄を検出できません。');
+    }
+    console.log('価格100円を設定');
+    await page.waitForTimeout(1000);
+
     const paidAreaOpened = await clickFirstVisible([
       page.getByRole('button', { name: /有料エリア設定/ }),
       page.getByText('有料エリア設定', { exact: true })
@@ -97,37 +109,30 @@ async function clickFirstVisible(candidates, timeout = 12000) {
 
     if (paidAreaOpened) {
       await page.waitForTimeout(2500);
-      const lineButtons = page.getByText(/ラインをこの場所に変更/);
+      const lineButtons = page.getByText(/ラインをこの場所に変更|ここから有料/);
       const lineCount = await lineButtons.count();
       if (lineCount > 0) {
-        // 冒頭の説明を無料で読めるよう、先頭ではなく数段落後を選択。
         const idx = Math.min(3, lineCount - 1);
         await lineButtons.nth(idx).click();
         console.log('有料ラインを設定:', idx);
-      } else {
-        console.log('有料ライン変更ボタンは見つからず。note側の既定位置を使用。');
       }
       await page.waitForTimeout(1500);
-    } else {
-      console.log('有料エリア設定ボタンは見つからず。note側の既定位置を使用。');
     }
 
-    // 最終公開。ボタン名はUIによって「公開」「投稿する」等になる。
     const published = await clickFirstVisible([
       page.getByRole('button', { name: /^公開$/ }),
       page.getByRole('button', { name: /投稿する/ }),
       page.getByRole('button', { name: /公開する/ }),
       page.getByText('公開', { exact: true })
-    ], 15000);
+    ]);
     if (!published) throw new Error('最終公開ボタンを検出できません。');
 
     await page.waitForTimeout(3000);
-    // 確認ダイアログが出た場合も承認する。
     await clickFirstVisible([
       page.getByRole('button', { name: /公開する/ }),
       page.getByRole('button', { name: /投稿する/ }),
       page.getByRole('button', { name: /^公開$/ })
-    ], 5000).catch(() => {});
+    ]).catch(() => {});
 
     await page.waitForTimeout(8000);
     console.log('公開処理完了URL:', page.url());
