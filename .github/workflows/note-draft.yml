@@ -25,13 +25,16 @@ jobs:
       - name: Upload note draft
         env:
           NOTE_STORAGE_STATE: ${{ secrets.NOTE_STORAGE_STATE }}
-        run: npm run post
+          HEADLESS: 'false'
+        run: xvfb-run -a npm run post
 
-      - name: Save debug screenshot
+      - name: Save debug files
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: note-debug-${{ github.run_number }}
-          path: note-debug.png
+          path: |
+            note-debug.png
+            note-debug.html
           if-no-files-found: ignore
           retention-days: 3
