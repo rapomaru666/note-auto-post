@@ -11,73 +11,38 @@ const fs = require('fs');
 
   try {
     await page.goto('https://note.com/new', { waitUntil: 'domcontentloaded', timeout: 60000 });
-
-    // note editor is an SPA and can take a while to fully render.
-    await page.waitForTimeout(20000);
-
     console.log('Current URL:', page.url());
     console.log('Page title:', await page.title());
 
-    const titleSelectors = [
-      'textarea[placeholder="記事タイトル"]',
-      'textarea[placeholder*="タイトル"]',
-      'div[data-placeholder*="タイトル"]',
-      'h1[contenteditable="true"]'
-    ];
+    // 2026年7月時点のnoteエディタではタイトル欄のplaceholderは「記事タイトル」。
+    const titleInput = page.getByPlaceholder('記事タイトル').first();
+    await titleInput.waitFor({ state: 'visible', timeout: 60000 });
+    await titleInput.click();
+    await titleInput.fill(post.title);
+    console.log('タイトル入力完了');
 
-    let titleFilled = false;
-    for (const sel of titleSelectors) {
-      try {
-        const el = page.locator(sel).first();
-        if (await el.isVisible({ timeout: 5000 }).catch(() => false)) {
-          await el.click();
-          const tag = await el.evaluate(node => node.tagName.toLowerCase());
-          if (tag === 'textarea' || tag === 'input') {
-            await el.fill(post.title);
-          } else {
-            await page.keyboard.type(post.title, { delay: 20 });
-          }
-          titleFilled = true;
-          console.log('Title selector used:', sel);
-          break;
-        }
-      } catch (_) {}
-    }
+    // 本文はcontenteditable。fillではなく実際のキー入力で内部状態も更新する。
+    const editor = page.locator('[contenteditable="true"]').first();
+    await editor.waitFor({ state: 'visible', timeout: 60000 });
+    await editor.click();
+    await page.waitForTimeout(300);
+    await page.keyboard.type(post.body, { delay: 4 });
+    await page.waitForTimeout(500);
+    console.log('本文入力完了');
 
-    if (!titleFilled) {
+    // 下書き保存ボタンを押す。公開はしない。
+    const saveButton = page.getByRole('button', { name: '下書き保存' }).first();
+    await saveButton.waitFor({ state: 'visible', timeout: 15000 });
+    await saveButton.click();
+    await page.waitForTimeout(2000);
+    await page.waitForURL(/\/notes\/[a-z0-9]+\/edit/, { timeout: 15000 }).catch(() => {});
+
+    console.log('下書き保存完了URL:', page.url());
+  } catch (err) {
+    try {
       await page.screenshot({ path: 'note-debug.png', fullPage: true });
-      throw new Error(`タイトル入力欄を検出できません。現在URL: ${page.url()}`);
-    }
-
-    const bodySelectors = [
-      'div.ProseMirror[contenteditable="true"]',
-      'div[contenteditable="true"][role="textbox"]',
-      '.ProseMirror',
-      'div[contenteditable="true"]'
-    ];
-
-    let bodyFilled = false;
-    for (const sel of bodySelectors) {
-      try {
-        const el = page.locator(sel).first();
-        if (await el.isVisible({ timeout: 10000 }).catch(() => false)) {
-          await el.click();
-          await page.keyboard.type(post.body, { delay: 5 });
-          bodyFilled = true;
-          console.log('Body selector used:', sel);
-          break;
-        }
-      } catch (_) {}
-    }
-
-    if (!bodyFilled) {
-      await page.screenshot({ path: 'note-debug.png', fullPage: true });
-      throw new Error(`本文入力欄を検出できません。現在URL: ${page.url()}`);
-    }
-
-    // Give note time to autosave. Do not publish in this safety-first version.
-    await page.waitForTimeout(10000);
-    console.log('noteへの入力処理が完了しました。公開操作は行っていません。');
+    } catch (_) {}
+    throw err;
   } finally {
     await browser.close();
   }
