@@ -26,3 +26,12 @@ jobs:
         env:
           NOTE_STORAGE_STATE: ${{ secrets.NOTE_STORAGE_STATE }}
         run: npm run post
+
+      - name: Save debug screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: note-debug-${{ github.run_number }}
+          path: note-debug.png
+          if-no-files-found: ignore
+          retention-days: 3
