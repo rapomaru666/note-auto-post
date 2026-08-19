@@ -104,23 +104,9 @@ async function uploadHeaderImage(page, imagePath) {
     throw new Error(`見出し画像が見つかりません: ${imagePath}`);
   }
 
-  const opened = await clickFirstVisible([
-    page.getByRole('button', { name: /見出し画像を設定|見出し画像を追加|画像を追加/ }),
-    page.getByText(/見出し画像を設定|見出し画像を追加/, { exact: false })
-  ]);
-  if (!opened) throw new Error('見出し画像の設定ボタンを検出できません。');
-  await page.waitForTimeout(1500);
-
-  await clickFirstVisible([
-    page.getByRole('button', { name: /画像をアップロード/ }),
-    page.getByText('画像をアップロード', { exact: false })
-  ]);
-  await page.waitForTimeout(800);
-
-  const dialog = page.getByRole('dialog').last();
-  const fileInput = (await dialog.isVisible().catch(() => false))
-    ? dialog.locator('input[type="file"][accept*="image"]').last()
-    : page.locator('input[type="file"][accept*="image"]').last();
+  // noteの見出し画像入力はモーダル内ではなく、編集ページ直下に常設された
+  // 非表示input。ボタン操作を経由せず、実際のinputへ直接ファイルを渡す。
+  const fileInput = page.locator('#note-editor-eyecatch-input');
   await fileInput.waitFor({ state: 'attached', timeout: 15000 });
   await fileInput.setInputFiles(imagePath);
   console.log('見出し画像を選択:', imagePath);
