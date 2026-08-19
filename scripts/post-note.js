@@ -109,6 +109,10 @@ async function uploadHeaderImage(page, imagePath) {
   await addImageButton.waitFor({ state: 'visible', timeout: 15000 });
   await addImageButton.click();
 
+  const uploadChoice = page.getByText('画像をアップロード', { exact: false }).first();
+  await uploadChoice.waitFor({ state: 'visible', timeout: 10000 });
+  await uploadChoice.click();
+
   // noteの見出し画像入力はモーダル内ではなく、編集ページ直下に常設された
   // 非表示input。追加ボタンを押した後、この実際のinputへ直接ファイルを渡す。
   const fileInput = page.locator('#note-editor-eyecatch-input');
