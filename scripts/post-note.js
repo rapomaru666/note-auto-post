@@ -156,9 +156,9 @@ async function applyTextLink(page, editor, link) {
     await page.waitForTimeout(3000);
 
     if (post.paid === true) {
-      const paidLabel = page.locator('label[for="paid"]').first();
-      await paidLabel.waitFor({ state: 'visible', timeout: 10000 });
-      await paidLabel.click();
+      const paidRadio = page.locator('input#paid').first();
+      await paidRadio.waitFor({ state: 'attached', timeout: 10000 });
+      await paidRadio.evaluate(element => element.click());
       await page.waitForFunction(() => document.querySelector('input#paid')?.checked === true, null, { timeout: 10000 });
       console.log('有料記事を選択');
       await page.waitForTimeout(1500);
