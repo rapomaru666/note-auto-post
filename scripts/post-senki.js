@@ -68,7 +68,7 @@ async function main() {
 
   const ledger = loadLedger();
   const alreadyPublished = ledger.posts.find(item => item.postKey === post.postKey);
-  if (alreadyPublished) {
+  if (alreadyPublished && post.updateExisting !== true) {
     fs.writeFileSync('senki-published-url.txt', alreadyPublished.url || '', 'utf8');
     console.log('投稿済みのためスキップ:', alreadyPublished.url || post.postKey);
     return;
@@ -85,7 +85,7 @@ async function main() {
     'User-Agent': 'rapomaru-senki-auto-post/1.0'
   };
 
-  if (post.customUrl) {
+  if (post.customUrl && !alreadyPublished) {
     const latestResponse = await fetch(endpoint, { headers: { Authorization: authorization } });
     if (latestResponse.ok) {
       const latestXml = await latestResponse.text();
@@ -127,6 +127,27 @@ ${categories}
     <app:draft>${draft}</app:draft>
   </app:control>${customUrl}
 </entry>`;
+
+  if (alreadyPublished && post.updateExisting === true) {
+    if (!alreadyPublished.memberUrl) {
+      throw new Error('既存記事の更新URLが記録されていません。');
+    }
+
+    const updateResponse = await fetch(alreadyPublished.memberUrl, { method: 'PUT', headers, body: xml });
+    const updateXml = await updateResponse.text();
+    if (!updateResponse.ok) {
+      throw new Error(`はてなブログの記事更新に失敗しました。HTTP ${updateResponse.status}: ${updateXml.slice(0, 500)}`);
+    }
+
+    const updatedUrl = getAlternateUrl(updateXml) || alreadyPublished.url;
+    alreadyPublished.title = post.title;
+    alreadyPublished.url = updatedUrl;
+    alreadyPublished.updatedAt = new Date().toISOString();
+    fs.writeFileSync(ledgerFile, JSON.stringify(ledger, null, 2) + '\n');
+    fs.writeFileSync('senki-published-url.txt', updatedUrl || alreadyPublished.memberUrl || '', 'utf8');
+    console.log('戦記の記事を更新しました:', updatedUrl || alreadyPublished.memberUrl);
+    return;
+  }
 
   const response = await fetch(endpoint, { method: 'POST', headers, body: xml });
   const responseXml = await response.text();
