@@ -119,17 +119,23 @@ async function uploadHeaderImage(page, imagePath) {
   await fileInput.waitFor({ state: 'attached', timeout: 15000 });
   await fileInput.setInputFiles(imagePath);
   console.log('見出し画像を選択:', imagePath);
-  await page.waitForTimeout(3500);
+  await page.waitForTimeout(2500);
 
   const cropDialog = page.getByRole('dialog').last();
   if (await cropDialog.isVisible().catch(() => false)) {
-    await clickFirstVisible([
+    // 画像の読込・描画が終わる前に保存すると、未描画部分が灰色のまま
+    // 書き出されることがある。推奨サイズ画像でも十分に待ってから確定する。
+    await page.waitForTimeout(12000);
+    await page.screenshot({ path: 'note-crop-ready.png' });
+    const applied = await clickFirstVisible([
       cropDialog.getByRole('button', { name: /適用/ }),
       cropDialog.getByRole('button', { name: /完了/ }),
       cropDialog.getByRole('button', { name: /決定/ }),
       cropDialog.getByRole('button', { name: /保存/ })
     ]);
-    await page.waitForTimeout(2500);
+    if (!applied) throw new Error('見出し画像の確定ボタンを検出できません。');
+    await cropDialog.waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(4000);
   }
 
   console.log('見出し画像の設定処理完了');
@@ -149,38 +155,47 @@ async function uploadHeaderImage(page, imagePath) {
   page.on('requestfailed', req => console.log('[requestfailed]', req.url(), req.failure()?.errorText || ''));
 
   try {
-    await page.goto('https://note.com/new', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    const updateCoverMode = post.action === 'updateCover' && post.noteId;
+    const startUrl = updateCoverMode
+      ? `https://editor.note.com/notes/${post.noteId}/edit/`
+      : 'https://note.com/new';
+    await page.goto(startUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForTimeout(15000);
     console.log('Current URL:', page.url());
 
     const titleInput = page.getByPlaceholder('記事タイトル').first();
     await titleInput.waitFor({ state: 'visible', timeout: 60000 });
-    await titleInput.fill(post.title);
+    if (updateCoverMode) {
+      console.log('公開済み記事の見出し画像だけを更新:', post.noteId);
+      await uploadHeaderImage(page, post.coverImage);
+    } else {
+      await titleInput.fill(post.title);
 
-    const editor = page.locator('[contenteditable="true"]').first();
-    await editor.waitFor({ state: 'visible', timeout: 60000 });
-    await editor.click();
-    await page.keyboard.type(post.body, { delay: 1 });
-    console.log('本文入力完了');
-    await page.waitForTimeout(3000);
+      const editor = page.locator('[contenteditable="true"]').first();
+      await editor.waitFor({ state: 'visible', timeout: 60000 });
+      await editor.click();
+      await page.keyboard.type(post.body, { delay: 1 });
+      console.log('本文入力完了');
+      await page.waitForTimeout(3000);
 
-    await uploadHeaderImage(page, post.coverImage);
+      await uploadHeaderImage(page, post.coverImage);
 
-    const links = post.links || [];
-    for (let i = 0; i < links.length; i++) {
-      await applyTextLink(page, editor, links[i]);
-      if (i < links.length - 1) {
-        const saved = await clickFirstVisible([
-          page.getByRole('button', { name: '下書き保存', exact: true }),
-          page.getByText('下書き保存', { exact: true })
-        ]);
-        if (!saved) throw new Error('リンク設定後の下書き保存ボタンを検出できません。');
-        await page.waitForTimeout(5000);
-        await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
-        await page.waitForTimeout(8000);
-        await editor.waitFor({ state: 'visible', timeout: 60000 });
-        await page.getByText(links[i + 1].text, { exact: true }).waitFor({ state: 'visible', timeout: 60000 });
-        console.log('次のリンク設定のため編集画面を再読込');
+      const links = post.links || [];
+      for (let i = 0; i < links.length; i++) {
+        await applyTextLink(page, editor, links[i]);
+        if (i < links.length - 1) {
+          const saved = await clickFirstVisible([
+            page.getByRole('button', { name: '下書き保存', exact: true }),
+            page.getByText('下書き保存', { exact: true })
+          ]);
+          if (!saved) throw new Error('リンク設定後の下書き保存ボタンを検出できません。');
+          await page.waitForTimeout(5000);
+          await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
+          await page.waitForTimeout(8000);
+          await editor.waitFor({ state: 'visible', timeout: 60000 });
+          await page.getByText(links[i + 1].text, { exact: true }).waitFor({ state: 'visible', timeout: 60000 });
+          console.log('次のリンク設定のため編集画面を再読込');
+        }
       }
     }
     await page.waitForTimeout(2000);
@@ -242,15 +257,20 @@ async function uploadHeaderImage(page, imagePath) {
     }
 
     const published = await clickFirstVisible([
+      page.getByRole('button', { name: /^更新$/ }),
+      page.getByRole('button', { name: /更新する/ }),
       page.getByRole('button', { name: /^公開$/ }),
       page.getByRole('button', { name: /投稿する/ }),
       page.getByRole('button', { name: /公開する/ }),
+      page.getByText('更新', { exact: true }),
       page.getByText('公開', { exact: true })
     ]);
     if (!published) throw new Error('最終公開ボタンを検出できません。');
 
     await page.waitForTimeout(3000);
     await clickFirstVisible([
+      page.getByRole('button', { name: /更新する/ }),
+      page.getByRole('button', { name: /^更新$/ }),
       page.getByRole('button', { name: /公開する/ }),
       page.getByRole('button', { name: /投稿する/ }),
       page.getByRole('button', { name: /^公開$/ })

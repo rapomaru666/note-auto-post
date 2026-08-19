@@ -44,6 +44,7 @@ jobs:
           path: |
             note-published.png
             published-url.txt
+            note-crop-ready.png
             note-debug.png
             note-debug.html
           if-no-files-found: ignore
