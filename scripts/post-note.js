@@ -64,40 +64,22 @@ async function selectText(editor, text) {
 
 async function applyTextLink(page, editor, link) {
   await page.keyboard.press('Escape').catch(() => {});
-  await editor.click().catch(() => {});
+  await editor.focus();
   await page.waitForTimeout(300);
   const selected = await selectText(editor, link.text);
   if (!selected) throw new Error(`リンク対象の文字を検出できません: ${link.text}`);
-  await page.waitForTimeout(400);
-
-  const linkButtonClicked = await clickFirstVisible([
-    page.getByRole('button', { name: /リンク/ }),
-    page.locator('button[aria-label*="リンク"]'),
-    page.locator('[role="button"][aria-label*="リンク"]')
-  ]);
-
-  if (!linkButtonClicked) {
-    await page.keyboard.press('Control+K');
-  }
-  await page.waitForTimeout(700);
+  console.log('リンク対象を選択:', link.text);
+  await page.keyboard.press('Control+K');
 
   const inputUrl = link.url.replace(/^https?:\/\//, '');
-  const urlFilled = await fillFirstVisible([
-    page.locator('textarea[placeholder="https://"]'),
-    page.getByPlaceholder(/URL|リンク/),
-    page.getByLabel(/URL|リンク/),
-    page.locator('input[type="url"]'),
-    page.locator('input').filter({ hasNot: page.locator('[type="checkbox"],[type="radio"]') })
-  ], inputUrl);
+  const urlField = page.locator('textarea[placeholder="https://"]:visible').first();
+  await urlField.waitFor({ state: 'visible', timeout: 10000 });
+  await urlField.fill(inputUrl);
+  console.log('リンクURLを入力:', await urlField.inputValue());
 
-  if (!urlFilled) throw new Error(`リンク先URLの入力欄を検出できません: ${link.text}`);
-
-  const applied = await clickFirstVisible([
-    page.getByRole('button', { name: '適用', exact: true }),
-    page.getByText('適用', { exact: true }),
-    page.getByRole('button', { name: '完了', exact: true })
-  ]);
-  if (!applied) await page.keyboard.press('Enter');
+  const applyButton = page.getByRole('button', { name: '適用', exact: true }).first();
+  await applyButton.waitFor({ state: 'visible', timeout: 10000 });
+  await applyButton.click();
   await page.waitForTimeout(1000);
 
   const href = await editor.locator('a').filter({ hasText: link.text }).first()
@@ -152,6 +134,7 @@ async function applyTextLink(page, editor, link) {
         await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
         await page.waitForTimeout(8000);
         await editor.waitFor({ state: 'visible', timeout: 60000 });
+        await page.getByText(links[i + 1].text, { exact: true }).waitFor({ state: 'visible', timeout: 60000 });
         console.log('次のリンク設定のため編集画面を再読込');
       }
     }
