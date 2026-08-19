@@ -55,6 +55,7 @@ async function selectText(editor, text) {
     const range = document.createRange();
     range.setStart(startEntry.node, start - startEntry.start);
     range.setEnd(endEntry.node, end - endEntry.start);
+    startEntry.node.parentElement?.scrollIntoView({ block: 'center', inline: 'nearest' });
     const selection = window.getSelection();
     selection.removeAllRanges();
     selection.addRange(range);
@@ -64,13 +65,10 @@ async function selectText(editor, text) {
 
 async function applyTextLink(page, editor, link) {
   await page.keyboard.press('Escape').catch(() => {});
-  const targetText = page.getByText(link.text, { exact: true }).first();
-  await targetText.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(300);
   await editor.focus();
-  await page.waitForTimeout(300);
   const selected = await selectText(editor, link.text);
   if (!selected) throw new Error(`リンク対象の文字を検出できません: ${link.text}`);
+  await page.waitForTimeout(500);
   console.log('リンク対象を選択:', link.text);
   const linkButton = page.locator('button[aria-label="リンク"]:visible').first();
   await linkButton.waitFor({ state: 'visible', timeout: 10000 });
@@ -155,7 +153,10 @@ async function uploadHeaderImage(page, imagePath) {
 
 (async () => {
   const postPath = process.env.POST_FILE || 'post.json';
-  const post = JSON.parse(fs.readFileSync(postPath, 'utf8'));
+  const rawPost = JSON.parse(fs.readFileSync(postPath, 'utf8'));
+  const post = process.env.POST_INDEX !== undefined
+    ? rawPost.repairs[Number(process.env.POST_INDEX)]
+    : rawPost;
   if (process.env.PREVIOUS_URL && Array.isArray(post.links)) {
     post.links = post.links.map(link => ({
       ...link,
@@ -176,7 +177,8 @@ async function uploadHeaderImage(page, imagePath) {
   try {
     const updateCoverMode = post.action === 'updateCover' && post.noteId;
     const updateLinksMode = post.action === 'updateLinks' && post.noteId;
-    const startUrl = (updateCoverMode || updateLinksMode)
+    const publishExistingMode = post.action === 'publishExisting' && post.noteId;
+    const startUrl = (updateCoverMode || updateLinksMode || publishExistingMode)
       ? `https://editor.note.com/notes/${post.noteId}/edit/`
       : 'https://note.com/new';
     await page.goto(startUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -205,6 +207,8 @@ async function uploadHeaderImage(page, imagePath) {
           console.log('次のリンク設定のため編集画面を再読込');
         }
       }
+    } else if (publishExistingMode) {
+      console.log('既存の下書きを公開:', post.noteId);
     } else {
       await titleInput.fill(post.title);
 
@@ -246,7 +250,9 @@ async function uploadHeaderImage(page, imagePath) {
     if (!openedPublishSettings) throw new Error('公開設定ボタンを検出できません。');
     await page.waitForTimeout(3000);
 
-    if (post.paid === true) {
+    if (post.preserveSettings === true) {
+      console.log('既存の公開設定を維持');
+    } else if (post.paid === true) {
       const paidRadio = page.locator('input#paid').first();
       await paidRadio.waitFor({ state: 'attached', timeout: 10000 });
       await paidRadio.evaluate(element => element.click());
@@ -314,8 +320,13 @@ async function uploadHeaderImage(page, imagePath) {
     ]).catch(() => {});
 
     await page.waitForTimeout(8000);
-    console.log('公開処理完了URL:', page.url());
-    fs.writeFileSync('published-url.txt', page.url(), 'utf8');
+    const editorUrl = page.url();
+    const publishedMatch = editorUrl.match(/editor\.note\.com\/notes\/([^/]+)\/publish/);
+    const publishedUrl = publishedMatch
+      ? `https://note.com/${post.noteAccount || 'rapomaru666'}/n/${publishedMatch[1]}`
+      : editorUrl;
+    console.log('公開処理完了URL:', publishedUrl);
+    fs.writeFileSync('published-url.txt', publishedUrl, 'utf8');
     await page.screenshot({ path: 'note-published.png', fullPage: true });
   } catch (err) {
     try {

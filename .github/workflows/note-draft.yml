@@ -36,7 +36,8 @@ jobs:
           HEADLESS: 'false'
         run: |
           set -euo pipefail
-          if node -e "process.exit(require('./post.json').batch === true ? 0 : 1)"; then
+          batch_mode="$(node -p "String(require('./post.json').batch || '')")"
+          if [ "$batch_mode" = "true" ] || [ "$batch_mode" = "publish" ]; then
             previous_url="$(node -p "require('./post.json').previousUrl")"
             : > series-urls.txt
             for number in 04 05 06 07 08; do
@@ -47,6 +48,11 @@ jobs:
             done
             node scripts/build-index-update.js series-urls.txt
             POST_FILE=generated-index-update.json xvfb-run -a npm run post
+          elif [ "$batch_mode" = "repairLinks" ]; then
+            repair_count="$(node -p "require('./post.json').repairs.length")"
+            for ((index=0; index<repair_count; index++)); do
+              POST_INDEX="$index" xvfb-run -a npm run post
+            done
           else
             xvfb-run -a npm run post
           fi
