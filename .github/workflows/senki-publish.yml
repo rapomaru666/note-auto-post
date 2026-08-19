@@ -1,0 +1,57 @@
+name: Senki Publish
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'senki/post.json'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: senki-publish
+  cancel-in-progress: false
+
+jobs:
+  publish-senki:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Publish RAPOMARU Senki
+        env:
+          HATENA_ID: ${{ secrets.HATENA_ID }}
+          HATENA_API_KEY: ${{ secrets.HATENA_API_KEY }}
+          HATENA_BLOG_ID: rapomaru.hatenablog.com
+        run: node scripts/post-senki.js
+
+      - name: Save published URL
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: senki-result-${{ github.run_number }}
+          path: senki-published-url.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Record published post
+        run: |
+          if git diff --quiet -- senki/published.json; then
+            echo "No publication ledger change."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add senki/published.json
+          git commit -m "Record published Senki post"
+          git push
