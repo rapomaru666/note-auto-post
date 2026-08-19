@@ -22,7 +22,18 @@ async function fillFirstVisible(candidates, value) {
         const el = candidate.nth(i);
         if (!await el.isVisible().catch(() => false)) continue;
         await el.click().catch(() => {});
-        await el.fill(value).catchasync function findVisibleTagInput(page) {
+        await el.fill(value).catch(async () => {
+          await el.press('Control+A').catch(() => {});
+          await el.type(value, { delay: 30 });
+        });
+        return true;
+      }
+    } catch (_) {}
+  }
+  return false;
+}
+
+async function findVisibleTagInput(page) {
   const candidates = [
     page.getByPlaceholder(/ハッシュタグ/),
     page.getByLabel(/ハッシュタグ/),
@@ -94,17 +105,6 @@ async function finalizePublishedUpdate(page) {
     page.getByRole('button', { name: /^公開$/ })
   ]).catch(() => {});
   await page.waitForTimeout(6000);
-}
-
-(async () => {
-          await el.press('Control+A').catch(() => {});
-          await el.type(value, { delay: 30 });
-        });
-        return true;
-      }
-    } catch (_) {}
-  }
-  return false;
 }
 
 async function selectText(editor, text, occurrence = 0) {
