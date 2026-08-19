@@ -78,6 +78,7 @@ async function applyTextLink(page, editor, link) {
   await page.waitForTimeout(700);
 
   const urlFilled = await fillFirstVisible([
+    page.locator('textarea[placeholder="https://"]'),
     page.getByPlaceholder(/URL|リンク/),
     page.getByLabel(/URL|リンク/),
     page.locator('input[type="url"]'),
@@ -91,7 +92,11 @@ async function applyTextLink(page, editor, link) {
     page.getByText('適用', { exact: true })
   ]);
   if (!applied) await page.keyboard.press('Enter');
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(1000);
+
+  const href = await editor.locator('a').filter({ hasText: link.text }).first()
+    .getAttribute('href', { timeout: 3000 }).catch(() => null);
+  if (!href) throw new Error(`リンクの適用を確認できません: ${link.text}`);
   console.log('リンク設定完了:', link.text, link.url);
 }
 
