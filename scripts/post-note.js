@@ -33,6 +33,68 @@ async function fillFirstVisible(candidates, value) {
   return false;
 }
 
+async function selectText(editor, text) {
+  return editor.evaluate((root, needle) => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    let combined = '';
+    let node;
+
+    while ((node = walker.nextNode())) {
+      nodes.push({ node, start: combined.length, end: combined.length + node.nodeValue.length });
+      combined += node.nodeValue;
+    }
+
+    const start = combined.indexOf(needle);
+    if (start < 0) return false;
+    const end = start + needle.length;
+    const startEntry = nodes.find(entry => entry.start <= start && entry.end > start);
+    const endEntry = nodes.find(entry => entry.start < end && entry.end >= end);
+    if (!startEntry || !endEntry) return false;
+
+    const range = document.createRange();
+    range.setStart(startEntry.node, start - startEntry.start);
+    range.setEnd(endEntry.node, end - endEntry.start);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return selection.toString() === needle;
+  }, text);
+}
+
+async function applyTextLink(page, editor, link) {
+  const selected = await selectText(editor, link.text);
+  if (!selected) throw new Error(`リンク対象の文字を検出できません: ${link.text}`);
+
+  const linkButtonClicked = await clickFirstVisible([
+    page.getByRole('button', { name: /リンク/ }),
+    page.locator('button[aria-label*="リンク"]'),
+    page.locator('[role="button"][aria-label*="リンク"]')
+  ]);
+
+  if (!linkButtonClicked) {
+    await page.keyboard.press('Control+K');
+  }
+  await page.waitForTimeout(700);
+
+  const urlFilled = await fillFirstVisible([
+    page.getByPlaceholder(/URL|リンク/),
+    page.getByLabel(/URL|リンク/),
+    page.locator('input[type="url"]'),
+    page.locator('input').filter({ hasNot: page.locator('[type="checkbox"],[type="radio"]') })
+  ], link.url);
+
+  if (!urlFilled) throw new Error(`リンク先URLの入力欄を検出できません: ${link.text}`);
+
+  const applied = await clickFirstVisible([
+    page.getByRole('button', { name: /適用|保存|完了/ }),
+    page.getByText('適用', { exact: true })
+  ]);
+  if (!applied) await page.keyboard.press('Enter');
+  await page.waitForTimeout(700);
+  console.log('リンク設定完了:', link.text, link.url);
+}
+
 (async () => {
   const post = JSON.parse(fs.readFileSync('post.json', 'utf8'));
   const storageState = JSON.parse(process.env.NOTE_STORAGE_STATE || '{}');
@@ -60,7 +122,12 @@ async function fillFirstVisible(candidates, value) {
     await editor.click();
     await page.keyboard.type(post.body, { delay: 1 });
     console.log('本文入力完了');
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(3000);
+
+    for (const link of post.links || []) {
+      await applyTextLink(page, editor, link);
+    }
+    await page.waitForTimeout(2000);
 
     const openedPublishSettings = await clickFirstVisible([
       page.getByRole('button', { name: /公開設定/ }),
@@ -71,52 +138,52 @@ async function fillFirstVisible(candidates, value) {
     if (!openedPublishSettings) throw new Error('公開設定ボタンを検出できません。');
     await page.waitForTimeout(3000);
 
-    const paidSelected = await clickFirstVisible([
-      page.getByRole('radio', { name: /有料/ }),
-      page.getByRole('button', { name: /^有料$/ }),
-      page.getByText('有料', { exact: true })
-    ]);
-    if (!paidSelected) throw new Error('販売設定「有料」を検出できません。');
-    await page.waitForTimeout(2500);
-
-    // note公式UIでは「価格（円）」欄。ラベル・近接要素・汎用inputの順で探す。
-    const priceFilled = await fillFirstVisible([
-      page.getByLabel(/価格（円）|価格\(円\)|価格/),
-      page.getByPlaceholder(/価格|円/),
-      page.locator('label:has-text("価格")').locator('input'),
-      page.locator('text=価格').locator('xpath=following::input[1]'),
-      page.locator('input[inputmode="decimal"]'),
-      page.locator('input[inputmode="numeric"]'),
-      page.locator('input[type="number"]'),
-      page.locator('input').filter({ hasNot: page.locator('[type="checkbox"],[type="radio"]') })
-    ], '100');
-
-    if (!priceFilled) {
-      const inputs = await page.locator('input').evaluateAll(nodes => nodes.map(n => ({
-        type: n.type, name: n.name, placeholder: n.placeholder, value: n.value,
-        aria: n.getAttribute('aria-label'), inputmode: n.getAttribute('inputmode')
-      })));
-      console.log('検出したinput一覧:', JSON.stringify(inputs));
-      throw new Error('価格入力欄を検出できません。');
-    }
-    console.log('価格100円を設定');
-    await page.waitForTimeout(1000);
-
-    const paidAreaOpened = await clickFirstVisible([
-      page.getByRole('button', { name: /有料エリア設定/ }),
-      page.getByText('有料エリア設定', { exact: true })
-    ]);
-
-    if (paidAreaOpened) {
+    if (post.paid === true) {
+      const paidSelected = await clickFirstVisible([
+        page.getByRole('radio', { name: /有料/ }),
+        page.getByRole('button', { name: /^有料$/ }),
+        page.getByText('有料', { exact: true })
+      ]);
+      if (!paidSelected) throw new Error('販売設定「有料」を検出できません。');
       await page.waitForTimeout(2500);
-      const lineButtons = page.getByText(/ラインをこの場所に変更|ここから有料/);
-      const lineCount = await lineButtons.count();
-      if (lineCount > 0) {
-        const idx = Math.min(3, lineCount - 1);
-        await lineButtons.nth(idx).click();
-        console.log('有料ラインを設定:', idx);
+
+      const priceFilled = await fillFirstVisible([
+        page.getByLabel(/価格（円）|価格\(円\)|価格/),
+        page.getByPlaceholder(/価格|円/),
+        page.locator('label:has-text("価格")').locator('input'),
+        page.locator('text=価格').locator('xpath=following::input[1]'),
+        page.locator('input[inputmode="decimal"]'),
+        page.locator('input[inputmode="numeric"]'),
+        page.locator('input[type="number"]')
+      ], String(post.price || 100));
+      if (!priceFilled) throw new Error('価格入力欄を検出できません。');
+      console.log(`価格${post.price || 100}円を設定`);
+      await page.waitForTimeout(1000);
+
+      const paidAreaOpened = await clickFirstVisible([
+        page.getByRole('button', { name: /有料エリア設定/ }),
+        page.getByText('有料エリア設定', { exact: true })
+      ]);
+
+      if (paidAreaOpened) {
+        await page.waitForTimeout(2500);
+        const lineButtons = page.getByText(/ラインをこの場所に変更|ここから有料/);
+        const lineCount = await lineButtons.count();
+        if (lineCount > 0) {
+          const idx = Math.min(post.paidLineIndex || 3, lineCount - 1);
+          await lineButtons.nth(idx).click();
+          console.log('有料ラインを設定:', idx);
+        }
+        await page.waitForTimeout(1500);
       }
-      await page.waitForTimeout(1500);
+    } else {
+      const freeSelected = await clickFirstVisible([
+        page.getByRole('radio', { name: /無料/ }),
+        page.getByRole('button', { name: /^無料$/ }),
+        page.getByText('無料', { exact: true })
+      ]);
+      console.log(freeSelected ? '無料記事を選択' : '無料記事の初期設定を使用');
+      await page.waitForTimeout(1000);
     }
 
     const published = await clickFirstVisible([
