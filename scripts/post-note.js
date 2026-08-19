@@ -156,13 +156,12 @@ async function applyTextLink(page, editor, link) {
     await page.waitForTimeout(3000);
 
     if (post.paid === true) {
-      const paidSelected = await clickFirstVisible([
-        page.getByRole('radio', { name: /有料/ }),
-        page.getByRole('button', { name: /^有料$/ }),
-        page.getByText('有料', { exact: true })
-      ]);
-      if (!paidSelected) throw new Error('販売設定「有料」を検出できません。');
-      await page.waitForTimeout(2500);
+      const paidLabel = page.locator('label[for="paid"]').first();
+      await paidLabel.waitFor({ state: 'visible', timeout: 10000 });
+      await paidLabel.click();
+      await page.waitForFunction(() => document.querySelector('input#paid')?.checked === true, null, { timeout: 10000 });
+      console.log('有料記事を選択');
+      await page.waitForTimeout(1500);
 
       const priceFilled = await fillFirstVisible([
         page.getByLabel(/価格（円）|価格\(円\)|価格/),
