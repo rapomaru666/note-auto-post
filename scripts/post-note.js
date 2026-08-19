@@ -33,7 +33,7 @@ async function fillFirstVisible(candidates, value) {
   return false;
 }
 
-async function selectText(editor, text) {
+async function selectText(editor, text, occurrence = 0) {
   return editor.evaluate((root, needle) => {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     const nodes = [];
@@ -45,8 +45,13 @@ async function selectText(editor, text) {
       combined += node.nodeValue;
     }
 
-    const start = combined.indexOf(needle);
-    if (start < 0) return false;
+    let start = -1;
+    let fromIndex = 0;
+    for (let index = 0; index <= occurrence; index++) {
+      start = combined.indexOf(needle, fromIndex);
+      if (start < 0) return false;
+      fromIndex = start + needle.length;
+    }
     const end = start + needle.length;
     const startEntry = nodes.find(entry => entry.start <= start && entry.end > start);
     const endEntry = nodes.find(entry => entry.start < end && entry.end >= end);
@@ -63,10 +68,10 @@ async function selectText(editor, text) {
   }, text);
 }
 
-async function applyTextLink(page, editor, link) {
+async function applyTextLink(page, editor, link, occurrence = 0) {
   await page.keyboard.press('Escape').catch(() => {});
   await editor.focus();
-  const selected = await selectText(editor, link.text);
+  const selected = await selectText(editor, link.text, occurrence);
   if (!selected) throw new Error(`リンク対象の文字を検出できません: ${link.text}`);
   await page.waitForTimeout(500);
   console.log('リンク対象を選択:', link.text);
@@ -88,7 +93,7 @@ async function applyTextLink(page, editor, link) {
   await applyButton.evaluate(element => element.click());
   await page.waitForTimeout(1000);
 
-  const href = await editor.locator('a').filter({ hasText: link.text }).first()
+  const href = await editor.locator('a').filter({ hasText: link.text }).nth(occurrence)
     .getAttribute('href', { timeout: 3000 }).catch(() => null);
   let linkIsValid = false;
   try {
@@ -96,6 +101,29 @@ async function applyTextLink(page, editor, link) {
   } catch (_) {}
   if (!linkIsValid) throw new Error(`リンクの適用を確認できません: ${link.text} (${href || 'hrefなし'})`);
   console.log('リンク設定完了:', link.text, link.url);
+}
+
+async function insertParagraphBefore(page, editor, beforeText, paragraphText) {
+  await page.keyboard.press('Escape').catch(() => {});
+  await editor.focus();
+  const selected = await selectText(editor, beforeText);
+  if (!selected) throw new Error(`挿入位置を検出できません: ${beforeText}`);
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type(paragraphText, { delay: 5 });
+  await page.waitForTimeout(800);
+  console.log('案内文を追加:', beforeText);
+}
+
+async function segmentContains(editor, startText, endText, needle) {
+  return editor.evaluate((root, values) => {
+    const text = root.innerText || root.textContent || '';
+    const start = text.indexOf(values.startText);
+    if (start < 0) return false;
+    const end = text.indexOf(values.endText, start + values.startText.length);
+    if (end < 0) return false;
+    return text.slice(start, end).includes(values.needle);
+  }, { startText, endText, needle });
 }
 
 async function uploadHeaderImage(page, imagePath) {
@@ -181,8 +209,9 @@ async function uploadHeaderImage(page, imagePath) {
   try {
     const updateCoverMode = post.action === 'updateCover' && post.noteId;
     const updateLinksMode = post.action === 'updateLinks' && post.noteId;
+    const insertCtasMode = post.action === 'insertCtas' && post.noteId;
     const publishExistingMode = post.action === 'publishExisting' && post.noteId;
-    const startUrl = (updateCoverMode || updateLinksMode || publishExistingMode)
+    const startUrl = (updateCoverMode || updateLinksMode || insertCtasMode || publishExistingMode)
       ? `https://editor.note.com/notes/${post.noteId}/edit/`
       : 'https://note.com/new';
     await page.goto(startUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -194,11 +223,71 @@ async function uploadHeaderImage(page, imagePath) {
     if (updateCoverMode) {
       console.log('公開済み記事の見出し画像だけを更新:', post.noteId);
       await uploadHeaderImage(page, post.coverImage);
+    } else if (insertCtasMode) {
+      console.log('各ステップの説明末尾へ案内リンクを追加:', post.noteId);
+      const editor = page.locator('[contenteditable="true"]').first();
+      await editor.waitFor({ state: 'visible', timeout: 60000 });
+      const items = post.items || [];
+      const ctaSentence = post.ctaSentence || 'この作業について詳しく知りたい方はコチラへ';
+      const ctaLinkText = post.ctaLinkText || 'コチラへ';
+
+      for (let index = items.length - 1; index >= 0; index--) {
+        const item = items[index];
+        const alreadyExists = await segmentContains(
+          editor,
+          item.sectionHeading,
+          item.beforeText,
+          ctaSentence
+        );
+        if (!alreadyExists) {
+          await insertParagraphBefore(page, editor, item.beforeText, ctaSentence);
+        } else {
+          console.log('案内文は追加済み:', item.sectionHeading);
+        }
+      }
+
+      const ctaCount = await editor.evaluate((root, needle) => {
+        const text = root.innerText || root.textContent || '';
+        return text.split(needle).length - 1;
+      }, ctaSentence);
+      if (ctaCount !== items.length) {
+        throw new Error(`案内文の件数が不正です: ${ctaCount}/${items.length}`);
+      }
+
+      for (let index = 0; index < items.length; index++) {
+        await applyTextLink(page, editor, {
+          text: ctaLinkText,
+          url: items[index].url
+        }, index);
+        await page.waitForTimeout(500);
+      }
+
+      await page.waitForTimeout(7000);
+      fs.writeFileSync(
+        'published-url.txt',
+        `https://note.com/${post.noteAccount || 'rapomaru666'}/n/${post.noteId}`,
+        'utf8'
+      );
+      await page.screenshot({ path: 'note-published.png', fullPage: true });
+      console.log('各説明末尾の案内リンク設定完了。公開版を更新します:', post.noteId);
     } else if (updateLinksMode) {
       console.log('公開済み記事の案内リンクを更新:', post.noteId);
       const editor = page.locator('[contenteditable="true"]').first();
       await editor.waitFor({ state: 'visible', timeout: 60000 });
       const links = post.links || [];
+      const existingHrefs = await editor.locator('a').evaluateAll(elements =>
+        elements.map(element => element.href)
+      );
+      const linksAlreadyComplete = links.every(link => existingHrefs.includes(link.url));
+      if (linksAlreadyComplete) {
+        fs.writeFileSync(
+          'published-url.txt',
+          `https://note.com/${post.noteAccount || 'rapomaru666'}/n/${post.noteId}`,
+          'utf8'
+        );
+        console.log('一覧リンクは設定済みのため変更なし:', post.noteId);
+        return;
+      }
       // 再読込すると直前のリンク以外が公開版へ残らないため、
       // 8本すべてを同じ編集セッション内で続けて設定する。
       for (let i = 0; i < links.length; i++) {
