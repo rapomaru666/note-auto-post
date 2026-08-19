@@ -34,7 +34,9 @@ async function fillFirstVisible(candidates, value) {
 }
 
 async function selectText(editor, text, occurrence = 0) {
-  return editor.evaluate((root, needle) => {
+  return editor.evaluate((root, values) => {
+    const needle = values.needle;
+    const occurrence = values.occurrence;
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     const nodes = [];
     let combined = '';
@@ -65,7 +67,7 @@ async function selectText(editor, text, occurrence = 0) {
     selection.removeAllRanges();
     selection.addRange(range);
     return selection.toString() === needle;
-  }, text);
+  }, { needle: text, occurrence });
 }
 
 async function applyTextLink(page, editor, link, occurrence = 0) {
