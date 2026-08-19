@@ -104,8 +104,13 @@ async function uploadHeaderImage(page, imagePath) {
     throw new Error(`見出し画像が見つかりません: ${imagePath}`);
   }
 
+  // このボタンを押した時点で、noteが非表示の画像inputをDOMへ追加する。
+  const addImageButton = page.locator('button:has(svg[aria-label="画像を追加"])').first();
+  await addImageButton.waitFor({ state: 'visible', timeout: 15000 });
+  await addImageButton.click();
+
   // noteの見出し画像入力はモーダル内ではなく、編集ページ直下に常設された
-  // 非表示input。ボタン操作を経由せず、実際のinputへ直接ファイルを渡す。
+  // 非表示input。追加ボタンを押した後、この実際のinputへ直接ファイルを渡す。
   const fileInput = page.locator('#note-editor-eyecatch-input');
   await fileInput.waitFor({ state: 'attached', timeout: 15000 });
   await fileInput.setInputFiles(imagePath);
