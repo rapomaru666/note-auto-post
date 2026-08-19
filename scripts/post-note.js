@@ -143,6 +143,11 @@ async function applyTextLink(page, editor, link) {
     for (let i = 0; i < links.length; i++) {
       await applyTextLink(page, editor, links[i]);
       if (i < links.length - 1) {
+        const saved = await clickFirstVisible([
+          page.getByRole('button', { name: '下書き保存', exact: true }),
+          page.getByText('下書き保存', { exact: true })
+        ]);
+        if (!saved) throw new Error('リンク設定後の下書き保存ボタンを検出できません。');
         await page.waitForTimeout(5000);
         await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
         await page.waitForTimeout(8000);
