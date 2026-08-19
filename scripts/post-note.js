@@ -260,7 +260,11 @@ async function uploadHeaderImage(page, imagePath) {
       page.getByText('公開に進む', { exact: true })
     ]);
     if (!openedPublishSettings) throw new Error('公開設定ボタンを検出できません。');
-    await page.waitForTimeout(3000);
+    // 公開設定画面はローディング表示が長いことがあるため、URL遷移と
+    // 操作ボタンの描画を待ってから設定・公開処理へ進む。
+    await page.waitForURL(/\/publish\/?/, { timeout: 60000 }).catch(() => {});
+    await page.waitForLoadState('domcontentloaded').catch(() => {});
+    await page.waitForTimeout(12000);
 
     if (post.preserveSettings === true) {
       console.log('既存の公開設定を維持');
