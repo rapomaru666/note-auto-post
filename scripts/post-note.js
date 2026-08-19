@@ -63,8 +63,12 @@ async function selectText(editor, text) {
 }
 
 async function applyTextLink(page, editor, link) {
+  await page.keyboard.press('Escape').catch(() => {});
+  await editor.click().catch(() => {});
+  await page.waitForTimeout(300);
   const selected = await selectText(editor, link.text);
   if (!selected) throw new Error(`リンク対象の文字を検出できません: ${link.text}`);
+  await page.waitForTimeout(400);
 
   const linkButtonClicked = await clickFirstVisible([
     page.getByRole('button', { name: /リンク/ }),
@@ -77,13 +81,14 @@ async function applyTextLink(page, editor, link) {
   }
   await page.waitForTimeout(700);
 
+  const inputUrl = link.url.replace(/^https?:\/\//, '');
   const urlFilled = await fillFirstVisible([
     page.locator('textarea[placeholder="https://"]'),
     page.getByPlaceholder(/URL|リンク/),
     page.getByLabel(/URL|リンク/),
     page.locator('input[type="url"]'),
     page.locator('input').filter({ hasNot: page.locator('[type="checkbox"],[type="radio"]') })
-  ], link.url);
+  ], inputUrl);
 
   if (!urlFilled) throw new Error(`リンク先URLの入力欄を検出できません: ${link.text}`);
 
@@ -97,7 +102,11 @@ async function applyTextLink(page, editor, link) {
 
   const href = await editor.locator('a').filter({ hasText: link.text }).first()
     .getAttribute('href', { timeout: 3000 }).catch(() => null);
-  if (!href) throw new Error(`リンクの適用を確認できません: ${link.text}`);
+  let linkIsValid = false;
+  try {
+    linkIsValid = new URL(href).hostname === new URL(link.url).hostname;
+  } catch (_) {}
+  if (!linkIsValid) throw new Error(`リンクの適用を確認できません: ${link.text} (${href || 'hrefなし'})`);
   console.log('リンク設定完了:', link.text, link.url);
 }
 
