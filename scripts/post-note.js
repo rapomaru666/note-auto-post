@@ -168,7 +168,8 @@ async function uploadHeaderImage(page, imagePath) {
 
   try {
     const updateCoverMode = post.action === 'updateCover' && post.noteId;
-    const startUrl = updateCoverMode
+    const updateLinksMode = post.action === 'updateLinks' && post.noteId;
+    const startUrl = (updateCoverMode || updateLinksMode)
       ? `https://editor.note.com/notes/${post.noteId}/edit/`
       : 'https://note.com/new';
     await page.goto(startUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -180,6 +181,27 @@ async function uploadHeaderImage(page, imagePath) {
     if (updateCoverMode) {
       console.log('公開済み記事の見出し画像だけを更新:', post.noteId);
       await uploadHeaderImage(page, post.coverImage);
+    } else if (updateLinksMode) {
+      console.log('公開済み記事の案内リンクを更新:', post.noteId);
+      const editor = page.locator('[contenteditable="true"]').first();
+      await editor.waitFor({ state: 'visible', timeout: 60000 });
+      const links = post.links || [];
+      for (let i = 0; i < links.length; i++) {
+        await applyTextLink(page, editor, links[i]);
+        if (i < links.length - 1) {
+          const saved = await clickFirstVisible([
+            page.getByRole('button', { name: '下書き保存', exact: true }),
+            page.getByText('下書き保存', { exact: true })
+          ]);
+          if (!saved) throw new Error('リンク設定後の下書き保存ボタンを検出できません。');
+          await page.waitForTimeout(5000);
+          await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
+          await page.waitForTimeout(8000);
+          await editor.waitFor({ state: 'visible', timeout: 60000 });
+          await page.getByText(links[i + 1].text, { exact: true }).waitFor({ state: 'visible', timeout: 60000 });
+          console.log('次のリンク設定のため編集画面を再読込');
+        }
+      }
     } else {
       await titleInput.fill(post.title);
 
