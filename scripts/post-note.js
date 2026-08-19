@@ -83,7 +83,9 @@ async function applyTextLink(page, editor, link) {
 
   const applyButton = page.getByRole('button', { name: '適用', exact: true }).first();
   await applyButton.waitFor({ state: 'visible', timeout: 10000 });
-  // noteのリンク入力ポップオーバーは、ボタンが見えていてもPlaywrightから\n  // 「viewport外」と判定される場合がある。DOMのclickを直接呼んで確定する。\n  await applyButton.evaluate(element => element.click());
+  // noteのリンク入力ポップオーバーは、ボタンが見えていてもPlaywrightから
+  // 「viewport外」と判定される場合がある。DOMのclickを直接呼んで確定する。
+  await applyButton.evaluate(element => element.click());
   await page.waitForTimeout(1000);
 
   const href = await editor.locator('a').filter({ hasText: link.text }).first()
@@ -209,6 +211,17 @@ async function uploadHeaderImage(page, imagePath) {
           console.log('次のリンク設定のため編集画面を再読込');
         }
       }
+      // 公開済み記事の本文変更は自動保存されるため、公開設定画面を開かない。
+      // 最後のリンクが保存されるまで待って、この更新処理を終了する。
+      await page.waitForTimeout(7000);
+      fs.writeFileSync(
+        'published-url.txt',
+        `https://note.com/${post.noteAccount || 'rapomaru666'}/n/${post.noteId}`,
+        'utf8'
+      );
+      await page.screenshot({ path: 'note-published.png', fullPage: true });
+      console.log('公開済み記事の案内リンク更新完了:', post.noteId);
+      return;
     } else if (publishExistingMode) {
       console.log('既存の下書きを公開:', post.noteId);
     } else {
