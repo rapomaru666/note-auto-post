@@ -61,8 +61,16 @@ async function findVisibleTagInput(page) {
   throw new Error('ハッシュタグ入力欄を検出できません。');
 }
 
-async function addHashtags(page, tags) {
+async function replaceHashtags(page, tags) {
   const field = await findVisibleTagInput(page);
+  const selectedTagContainer = field.locator('xpath=..');
+  const selectedTags = selectedTagContainer.locator('button:has([aria-label="削除"])');
+  while (await selectedTags.count() > 0) {
+    await selectedTags.first().click();
+    await page.waitForTimeout(250);
+  }
+  console.log('既存のハッシュタグを削除');
+
   for (const rawTag of tags) {
     const tag = String(rawTag).replace(/^#/, '');
     await field.click();
@@ -70,6 +78,15 @@ async function addHashtags(page, tags) {
     await field.press('Space');
     await page.waitForTimeout(500);
     console.log('ハッシュタグを追加:', tag);
+  }
+
+  const appliedTags = await selectedTagContainer
+    .locator('button:has([aria-label="削除"])')
+    .allTextContents();
+  const normalized = appliedTags.map(text => text.replace(/^#/, '').trim());
+  const expected = tags.map(tag => String(tag).replace(/^#/, ''));
+  if (normalized.length !== expected.length || !expected.every(tag => normalized.includes(tag))) {
+    throw new Error(`ハッシュタグの反映確認に失敗: ${normalized.join(', ')}`);
   }
 }
 
@@ -86,16 +103,29 @@ async function openPublishSettings(page) {
 }
 
 async function finalizePublishedUpdate(page) {
-  const published = await clickFirstVisible([
-    page.getByRole('button', { name: /^更新$/ }),
-    page.getByRole('button', { name: /更新する/ }),
-    page.getByRole('button', { name: /^公開$/ }),
-    page.getByRole('button', { name: /投稿する/ }),
-    page.getByRole('button', { name: /公開する/ }),
-    page.getByText('更新', { exact: true }),
-    page.getByText('公開', { exact: true })
-  ]);
+  await page.waitForTimeout(1500);
+  const paidAreaButton = page.getByRole('button', { name: /有料エリア設定/ }).first();
+  if (await paidAreaButton.isVisible().catch(() => false)) {
+    await paidAreaButton.click();
+    await page.waitForTimeout(4000);
+    console.log('既存の有料エリア設定を維持して公開へ進む');
+  }
+
+  let published = false;
+  for (let attempt = 0; attempt < 80 && !published; attempt++) {
+    published = await clickFirstVisible([
+      page.getByRole('button', { name: /^更新$/ }),
+      page.getByRole('button', { name: /更新する/ }),
+      page.getByRole('button', { name: /^公開$/ }),
+      page.getByRole('button', { name: /投稿する/ }),
+      page.getByRole('button', { name: /公開する/ }),
+      page.getByText('更新', { exact: true }),
+      page.getByText('公開', { exact: true })
+    ]);
+    if (!published) await page.waitForTimeout(500);
+  }
   if (!published) throw new Error('最終公開ボタンを検出できません。');
+
   await page.waitForTimeout(2500);
   await clickFirstVisible([
     page.getByRole('button', { name: /更新する/ }),
@@ -296,7 +326,7 @@ async function uploadHeaderImage(page, imagePath) {
         await titleInput.waitFor({ state: 'visible', timeout: 60000 });
         await page.waitForTimeout(2000);
         await openPublishSettings(page);
-        await addHashtags(page, update.tags || []);
+        await replaceHashtags(page, update.tags || []);
         await finalizePublishedUpdate(page);
         const publicUrl = `https://note.com/${post.noteAccount || 'rapomaru666'}/n/${update.noteId}`;
         completedUrls.push(publicUrl);
