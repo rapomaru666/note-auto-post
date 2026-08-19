@@ -210,8 +210,7 @@ async function uploadHeaderImage(page, imagePath) {
           console.log('次のリンク設定のため編集画面を再読込');
         }
       }
-      // 公開済み記事の本文変更は自動保存されるため、公開設定画面を開かない。
-      // 最後のリンクが保存されるまで待って、この更新処理を終了する。
+      // 最後のリンクが自動保存されるまで待ち、その後「更新」で公開版へ反映する。
       await page.waitForTimeout(7000);
       fs.writeFileSync(
         'published-url.txt',
@@ -219,8 +218,7 @@ async function uploadHeaderImage(page, imagePath) {
         'utf8'
       );
       await page.screenshot({ path: 'note-published.png', fullPage: true });
-      console.log('公開済み記事の案内リンク更新完了:', post.noteId);
-      return;
+      console.log('公開済み記事の案内リンク設定完了。公開版を更新します:', post.noteId);
     } else if (publishExistingMode) {
       console.log('既存の下書きを公開:', post.noteId);
     } else {
