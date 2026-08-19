@@ -2,14 +2,6 @@
   "batch": "repairLinks",
   "repairs": [
     {
-      "action": "publishExisting",
-      "noteId": "n32b0f35870d1",
-      "noteAccount": "rapomaru666",
-      "paid": true,
-      "price": 100,
-      "paidLineIndex": 13
-    },
-    {
       "action": "updateLinks",
       "noteId": "n28bd628709c8",
       "preserveSettings": true,
