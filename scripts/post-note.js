@@ -83,7 +83,7 @@ async function applyTextLink(page, editor, link) {
 
   const applyButton = page.getByRole('button', { name: '適用', exact: true }).first();
   await applyButton.waitFor({ state: 'visible', timeout: 10000 });
-  await applyButton.click();
+  // noteのリンク入力ポップオーバーは、ボタンが見えていてもPlaywrightから\n  // 「viewport外」と判定される場合がある。DOMのclickを直接呼んで確定する。\n  await applyButton.evaluate(element => element.click());
   await page.waitForTimeout(1000);
 
   const href = await editor.locator('a').filter({ hasText: link.text }).first()
