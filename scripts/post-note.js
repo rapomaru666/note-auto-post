@@ -98,6 +98,48 @@ async function applyTextLink(page, editor, link) {
   console.log('リンク設定完了:', link.text, link.url);
 }
 
+async function uploadHeaderImage(page, imagePath) {
+  if (!imagePath) return;
+  if (!fs.existsSync(imagePath)) {
+    throw new Error(`見出し画像が見つかりません: ${imagePath}`);
+  }
+
+  const opened = await clickFirstVisible([
+    page.getByRole('button', { name: /見出し画像を設定|見出し画像を追加|画像を追加/ }),
+    page.getByText(/見出し画像を設定|見出し画像を追加/, { exact: false })
+  ]);
+  if (!opened) throw new Error('見出し画像の設定ボタンを検出できません。');
+  await page.waitForTimeout(1500);
+
+  await clickFirstVisible([
+    page.getByRole('button', { name: /画像をアップロード/ }),
+    page.getByText('画像をアップロード', { exact: false })
+  ]);
+  await page.waitForTimeout(800);
+
+  const dialog = page.getByRole('dialog').last();
+  const fileInput = (await dialog.isVisible().catch(() => false))
+    ? dialog.locator('input[type="file"][accept*="image"]').last()
+    : page.locator('input[type="file"][accept*="image"]').last();
+  await fileInput.waitFor({ state: 'attached', timeout: 15000 });
+  await fileInput.setInputFiles(imagePath);
+  console.log('見出し画像を選択:', imagePath);
+  await page.waitForTimeout(3500);
+
+  const cropDialog = page.getByRole('dialog').last();
+  if (await cropDialog.isVisible().catch(() => false)) {
+    await clickFirstVisible([
+      cropDialog.getByRole('button', { name: /適用/ }),
+      cropDialog.getByRole('button', { name: /完了/ }),
+      cropDialog.getByRole('button', { name: /決定/ }),
+      cropDialog.getByRole('button', { name: /保存/ })
+    ]);
+    await page.waitForTimeout(2500);
+  }
+
+  console.log('見出し画像の設定処理完了');
+}
+
 (async () => {
   const post = JSON.parse(fs.readFileSync('post.json', 'utf8'));
   const storageState = JSON.parse(process.env.NOTE_STORAGE_STATE || '{}');
@@ -126,6 +168,8 @@ async function applyTextLink(page, editor, link) {
     await page.keyboard.type(post.body, { delay: 1 });
     console.log('本文入力完了');
     await page.waitForTimeout(3000);
+
+    await uploadHeaderImage(page, post.coverImage);
 
     const links = post.links || [];
     for (let i = 0; i < links.length; i++) {
