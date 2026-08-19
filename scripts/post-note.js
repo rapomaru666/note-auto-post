@@ -64,6 +64,9 @@ async function selectText(editor, text) {
 
 async function applyTextLink(page, editor, link) {
   await page.keyboard.press('Escape').catch(() => {});
+  const targetText = page.getByText(link.text, { exact: true }).first();
+  await targetText.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
   await editor.focus();
   await page.waitForTimeout(300);
   const selected = await selectText(editor, link.text);
@@ -71,7 +74,7 @@ async function applyTextLink(page, editor, link) {
   console.log('リンク対象を選択:', link.text);
   const linkButton = page.locator('button[aria-label="リンク"]:visible').first();
   await linkButton.waitFor({ state: 'visible', timeout: 10000 });
-  await linkButton.click();
+  await linkButton.dispatchEvent('click');
   console.log('リンク入力欄を表示:', link.text);
 
   const inputUrl = link.url.replace(/^https?:\/\//, '');
