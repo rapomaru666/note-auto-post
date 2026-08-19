@@ -104,6 +104,18 @@ async function uploadHeaderImage(page, imagePath) {
     throw new Error(`見出し画像が見つかりません: ${imagePath}`);
   }
 
+  const existingHeader = page.locator('figure:has(img[alt="eyecatch"])').first();
+  if (await existingHeader.isVisible().catch(() => false)) {
+    const removeHeaderButton = page
+      .locator('figure:has(img[alt="eyecatch"]) + div button:has(svg[aria-label="削除"])')
+      .first();
+    await removeHeaderButton.waitFor({ state: 'visible', timeout: 10000 });
+    await removeHeaderButton.click();
+    await existingHeader.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(1500);
+    console.log('既存の見出し画像を取り外し');
+  }
+
   // このボタンを押した時点で、noteが非表示の画像inputをDOMへ追加する。
   const addImageButton = page.locator('button:has(svg[aria-label="画像を追加"])').first();
   await addImageButton.waitFor({ state: 'visible', timeout: 15000 });
