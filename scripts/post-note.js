@@ -88,8 +88,9 @@ async function applyTextLink(page, editor, link) {
   if (!urlFilled) throw new Error(`リンク先URLの入力欄を検出できません: ${link.text}`);
 
   const applied = await clickFirstVisible([
-    page.getByRole('button', { name: /適用|保存|完了/ }),
-    page.getByText('適用', { exact: true })
+    page.getByRole('button', { name: '適用', exact: true }),
+    page.getByText('適用', { exact: true }),
+    page.getByRole('button', { name: '完了', exact: true })
   ]);
   if (!applied) await page.keyboard.press('Enter');
   await page.waitForTimeout(1000);
