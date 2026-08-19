@@ -30,7 +30,7 @@ jobs:
 
       - name: Publish RAPOMARU Senki
         env:
-          HATENA_ID: ${{ secrets.HATENA_ID }}
+          HATENA_ID: rapomaru666
           HATENA_API_KEY: ${{ secrets.HATENA_API_KEY }}
           HATENA_BLOG_ID: rapomaru.hatenablog.com
         run: node scripts/post-senki.js
