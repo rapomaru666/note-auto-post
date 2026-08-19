@@ -207,7 +207,6 @@ async function uploadHeaderImage(page, imagePath) {
           await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
           await page.waitForTimeout(8000);
           await editor.waitFor({ state: 'visible', timeout: 60000 });
-          await page.getByText(links[i + 1].text, { exact: true }).waitFor({ state: 'visible', timeout: 60000 });
           console.log('次のリンク設定のため編集画面を再読込');
         }
       }
