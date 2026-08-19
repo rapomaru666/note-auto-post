@@ -69,7 +69,10 @@ async function applyTextLink(page, editor, link) {
   const selected = await selectText(editor, link.text);
   if (!selected) throw new Error(`リンク対象の文字を検出できません: ${link.text}`);
   console.log('リンク対象を選択:', link.text);
-  await page.keyboard.press('Control+K');
+  const linkButton = page.locator('button[aria-label="リンク"]:visible').first();
+  await linkButton.waitFor({ state: 'visible', timeout: 10000 });
+  await linkButton.click();
+  console.log('リンク入力欄を表示:', link.text);
 
   const inputUrl = link.url.replace(/^https?:\/\//, '');
   const urlField = page.locator('textarea[placeholder="https://"]:visible').first();
