@@ -199,16 +199,11 @@ async function uploadHeaderImage(page, imagePath) {
       const editor = page.locator('[contenteditable="true"]').first();
       await editor.waitFor({ state: 'visible', timeout: 60000 });
       const links = post.links || [];
+      // 再読込すると直前のリンク以外が公開版へ残らないため、
+      // 8本すべてを同じ編集セッション内で続けて設定する。
       for (let i = 0; i < links.length; i++) {
         await applyTextLink(page, editor, links[i]);
-        if (i < links.length - 1) {
-          // 公開済み記事は自動保存を待ってから再読込する。
-          await page.waitForTimeout(5000);
-          await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
-          await page.waitForTimeout(8000);
-          await editor.waitFor({ state: 'visible', timeout: 60000 });
-          console.log('次のリンク設定のため編集画面を再読込');
-        }
+        await page.waitForTimeout(500);
       }
       // 最後のリンクが自動保存されるまで待ち、その後「更新」で公開版へ反映する。
       await page.waitForTimeout(7000);
