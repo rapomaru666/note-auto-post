@@ -14,7 +14,7 @@ on:
 jobs:
   publish-note:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,7 +34,22 @@ jobs:
         env:
           NOTE_STORAGE_STATE: ${{ secrets.NOTE_STORAGE_STATE }}
           HEADLESS: 'false'
-        run: xvfb-run -a npm run post
+        run: |
+          set -euo pipefail
+          if node -e "process.exit(require('./post.json').batch === true ? 0 : 1)"; then
+            previous_url="$(node -p "require('./post.json').previousUrl")"
+            : > series-urls.txt
+            for number in 04 05 06 07 08; do
+              POST_FILE="posts/note-${number}.json" PREVIOUS_URL="$previous_url" xvfb-run -a npm run post
+              cp published-url.txt "published-url-${number}.txt"
+              previous_url="$(cat published-url.txt)"
+              printf '%s=%s\n' "${number#0}" "$previous_url" >> series-urls.txt
+            done
+            node scripts/build-index-update.js series-urls.txt
+            POST_FILE=generated-index-update.json xvfb-run -a npm run post
+          else
+            xvfb-run -a npm run post
+          fi
 
       - name: Save result and debug files
         if: always()
@@ -44,6 +59,8 @@ jobs:
           path: |
             note-published.png
             published-url.txt
+            published-url-*.txt
+            all-published-urls.txt
             note-crop-ready.png
             note-debug.png
             note-debug.html

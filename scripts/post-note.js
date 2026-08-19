@@ -154,7 +154,14 @@ async function uploadHeaderImage(page, imagePath) {
 }
 
 (async () => {
-  const post = JSON.parse(fs.readFileSync('post.json', 'utf8'));
+  const postPath = process.env.POST_FILE || 'post.json';
+  const post = JSON.parse(fs.readFileSync(postPath, 'utf8'));
+  if (process.env.PREVIOUS_URL && Array.isArray(post.links)) {
+    post.links = post.links.map(link => ({
+      ...link,
+      url: link.url === '__PREVIOUS_URL__' ? process.env.PREVIOUS_URL : link.url
+    }));
+  }
   const storageState = JSON.parse(process.env.NOTE_STORAGE_STATE || '{}');
   const headless = process.env.HEADLESS !== 'false';
 
@@ -189,11 +196,7 @@ async function uploadHeaderImage(page, imagePath) {
       for (let i = 0; i < links.length; i++) {
         await applyTextLink(page, editor, links[i]);
         if (i < links.length - 1) {
-          const saved = await clickFirstVisible([
-            page.getByRole('button', { name: '下書き保存', exact: true }),
-            page.getByText('下書き保存', { exact: true })
-          ]);
-          if (!saved) throw new Error('リンク設定後の下書き保存ボタンを検出できません。');
+          // 公開済み記事は自動保存を待ってから再読込する。
           await page.waitForTimeout(5000);
           await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
           await page.waitForTimeout(8000);
