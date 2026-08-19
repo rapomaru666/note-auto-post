@@ -139,8 +139,16 @@ async function applyTextLink(page, editor, link) {
     console.log('本文入力完了');
     await page.waitForTimeout(3000);
 
-    for (const link of post.links || []) {
-      await applyTextLink(page, editor, link);
+    const links = post.links || [];
+    for (let i = 0; i < links.length; i++) {
+      await applyTextLink(page, editor, links[i]);
+      if (i < links.length - 1) {
+        await page.waitForTimeout(5000);
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.waitForTimeout(8000);
+        await editor.waitFor({ state: 'visible', timeout: 60000 });
+        console.log('次のリンク設定のため編集画面を再読込');
+      }
     }
     await page.waitForTimeout(2000);
 
