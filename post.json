@@ -1,53 +1,95 @@
 {
-  "batch": "repairLinks",
-  "repairs": [
+  "action": "updateTagsBatch",
+  "noteAccount": "rapomaru666",
+  "updates": [
     {
-      "action": "insertCtas",
       "noteId": "n3ef43761b3f8",
-      "preserveSettings": true,
-      "ctaSentence": "この作業について詳しく知りたい方はコチラへ",
-      "ctaLinkText": "コチラへ",
-      "items": [
-        {
-          "sectionHeading": "■ ① noteのアカウントを作る",
-          "beforeText": "■ ② 投稿する記事のテーマを決める",
-          "url": "https://note.com/rapomaru666/n/n110e09eb7afd"
-        },
-        {
-          "sectionHeading": "■ ② 投稿する記事のテーマを決める",
-          "beforeText": "■ ③ ChatGPTへ記事作成を依頼する",
-          "url": "https://note.com/rapomaru666/n/nc9aeb780906d"
-        },
-        {
-          "sectionHeading": "■ ③ ChatGPTへ記事作成を依頼する",
-          "beforeText": "■ ④ ChatGPTが作った文章を修正する",
-          "url": "https://note.com/rapomaru666/n/nf4961291a0bd"
-        },
-        {
-          "sectionHeading": "■ ④ ChatGPTが作った文章を修正する",
-          "beforeText": "■ ⑤ 完成した文章をnoteへ投稿する",
-          "url": "https://note.com/rapomaru666/n/n28bd628709c8"
-        },
-        {
-          "sectionHeading": "■ ⑤ 完成した文章をnoteへ投稿する",
-          "beforeText": "■ ⑥ 見出し画像とハッシュタグを設定する",
-          "url": "https://note.com/rapomaru666/n/n635229471946"
-        },
-        {
-          "sectionHeading": "■ ⑥ 見出し画像とハッシュタグを設定する",
-          "beforeText": "■ ⑦ 有料記事の価格と公開範囲を設定する",
-          "url": "https://note.com/rapomaru666/n/n8f001f5dcc21"
-        },
-        {
-          "sectionHeading": "■ ⑦ 有料記事の価格と公開範囲を設定する",
-          "beforeText": "■ ⑧ 記事を確認して公開する",
-          "url": "https://note.com/rapomaru666/n/n3edb51c1da23"
-        },
-        {
-          "sectionHeading": "■ ⑧ 記事を確認して公開する",
-          "beforeText": "以上が、ChatGPTを使ってnoteへ記事を投稿するまでの全体的な流れです。",
-          "url": "https://note.com/rapomaru666/n/n32b0f35870d1"
-        }
+      "tags": [
+        "note",
+        "note初心者",
+        "ChatGPT",
+        "AI",
+        "noteの使い方"
+      ]
+    },
+    {
+      "noteId": "n110e09eb7afd",
+      "tags": [
+        "note",
+        "note初心者",
+        "ChatGPT",
+        "AI",
+        "note登録"
+      ]
+    },
+    {
+      "noteId": "nc9aeb780906d",
+      "tags": [
+        "note",
+        "note初心者",
+        "ChatGPT",
+        "AI",
+        "記事ネタ"
+      ]
+    },
+    {
+      "noteId": "nf4961291a0bd",
+      "tags": [
+        "note",
+        "note初心者",
+        "ChatGPT",
+        "AI",
+        "ChatGPTの使い方"
+      ]
+    },
+    {
+      "noteId": "n28bd628709c8",
+      "tags": [
+        "note",
+        "note初心者",
+        "ChatGPT",
+        "AI",
+        "文章の書き方"
+      ]
+    },
+    {
+      "noteId": "n635229471946",
+      "tags": [
+        "note",
+        "note初心者",
+        "ChatGPT",
+        "AI",
+        "noteの書き方"
+      ]
+    },
+    {
+      "noteId": "n8f001f5dcc21",
+      "tags": [
+        "note",
+        "note初心者",
+        "ChatGPT",
+        "AI",
+        "見出し画像"
+      ]
+    },
+    {
+      "noteId": "n3edb51c1da23",
+      "tags": [
+        "note",
+        "note初心者",
+        "ChatGPT",
+        "AI",
+        "有料記事"
+      ]
+    },
+    {
+      "noteId": "n32b0f35870d1",
+      "tags": [
+        "note",
+        "note初心者",
+        "ChatGPT",
+        "AI",
+        "noteの使い方"
       ]
     }
   ]
