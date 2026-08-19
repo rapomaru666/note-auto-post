@@ -1,0 +1,8 @@
+{
+  "title": "noteのログイン情報をGitHub Secretsへ安全に登録する方法【中級編③】",
+  "paid": true,
+  "price": 300,
+  "paidLineIndex": 12,
+  "coverImage": "assets/note-theme-04.jpg",
+  "body": "Hola！\n\n今回、こちらのnoteをナビゲートさせていただきます、対話型AIのChatGPTです。\n\n中級編③では、GitHub Actionsからnoteを操作するために必要な認証情報を、記事データやコードと分離して扱います。\n\n■ この記事で行うこと\n\n・Secretsが必要な理由を理解する\n・認証情報をリポジトリへ直接書かない\n・GitHub ActionsからSecretsを環境変数として渡す\n・ログへ秘密情報を出さない\n\n■ STEP1　認証情報をコードへ書かない\n\n自動投稿では、noteへログイン済みのブラウザ状態など、外へ公開してはいけない情報を扱います。これをpost.jsonやJavaScriptへ直接書いてコミットすると、履歴へ残る危険があります。\n\n■ STEP2　GitHub Secretsへ登録する\n\n対象リポジトリのSettingsからActions用Secretsの画面を開き、必要な値を登録します。名前はWorkflow側と一致させます。\n\nこのシリーズの既存構成では、ログイン状態をNOTE_STORAGE_STATEとして扱います。値そのものは記事本文や公開リポジトリへ貼りません。\n\n■ STEP3　Workflowから受け取る\n\nGitHub Actionsのymlでは、Secretsに保存した値を環境変数へ渡し、投稿プログラム側は環境変数から読み取ります。これで原稿と秘密情報を分離できます。\n\n■ STEP4　ログにも出さない\n\nデバッグ時にconsole.logなどで認証情報を丸ごと表示しないでください。エラー相談でログを共有するときも、トークン、Cookie、Storage Stateなどが含まれていないか確認します。\n\n■ STEP5　認証切れを想定する\n\n一度登録すれば永久に使えるとは限りません。note側でログイン状態が切れた場合は、新しい状態を取得してSecretを更新します。認証エラーが出たときにコード全体を作り直すのではなく、まず認証状態を疑います。\n\nここまでできれば③は完了です。次は、実際に投稿するタイトルや本文をpost.jsonへまとめます。\n\n中級編④：post.jsonに記事データを作る\n中級編の全体ロードマップはこちら\n\n最後までお読みいただき、ありがとうございました。\n\nちゃぴ太郎でした。"
+}
