@@ -22,7 +22,81 @@ async function fillFirstVisible(candidates, value) {
         const el = candidate.nth(i);
         if (!await el.isVisible().catch(() => false)) continue;
         await el.click().catch(() => {});
-        await el.fill(value).catch(async () => {
+        await el.fill(value).catchasync function findVisibleTagInput(page) {
+  const candidates = [
+    page.getByPlaceholder(/ハッシュタグ/),
+    page.getByLabel(/ハッシュタグ/),
+    page.locator('input[placeholder*="ハッシュ"]'),
+    page.locator('input[aria-label*="ハッシュ"]'),
+    page.locator('textarea[placeholder*="ハッシュ"]')
+  ];
+
+  for (let attempt = 0; attempt < 80; attempt++) {
+    for (const candidate of candidates) {
+      const count = await candidate.count().catch(() => 0);
+      for (let index = 0; index < count; index++) {
+        const field = candidate.nth(index);
+        if (await field.isVisible().catch(() => false)) return field;
+      }
+    }
+    if (attempt === 5) {
+      await clickFirstVisible([
+        page.getByRole('button', { name: /詳細設定/ }),
+        page.getByText('詳細設定', { exact: true })
+      ]).catch(() => {});
+    }
+    await page.waitForTimeout(500);
+  }
+  throw new Error('ハッシュタグ入力欄を検出できません。');
+}
+
+async function addHashtags(page, tags) {
+  const field = await findVisibleTagInput(page);
+  for (const rawTag of tags) {
+    const tag = String(rawTag).replace(/^#/, '');
+    await field.click();
+    await field.fill(tag);
+    await field.press('Space');
+    await page.waitForTimeout(500);
+    console.log('ハッシュタグを追加:', tag);
+  }
+}
+
+async function openPublishSettings(page) {
+  const opened = await clickFirstVisible([
+    page.getByRole('button', { name: /公開設定/ }),
+    page.getByRole('button', { name: /公開に進む/ }),
+    page.getByText('公開設定', { exact: true }),
+    page.getByText('公開に進む', { exact: true })
+  ]);
+  if (!opened) throw new Error('公開設定ボタンを検出できません。');
+  await page.waitForURL(/\/publish\/?/, { timeout: 60000 }).catch(() => {});
+  await page.waitForLoadState('domcontentloaded').catch(() => {});
+}
+
+async function finalizePublishedUpdate(page) {
+  const published = await clickFirstVisible([
+    page.getByRole('button', { name: /^更新$/ }),
+    page.getByRole('button', { name: /更新する/ }),
+    page.getByRole('button', { name: /^公開$/ }),
+    page.getByRole('button', { name: /投稿する/ }),
+    page.getByRole('button', { name: /公開する/ }),
+    page.getByText('更新', { exact: true }),
+    page.getByText('公開', { exact: true })
+  ]);
+  if (!published) throw new Error('最終公開ボタンを検出できません。');
+  await page.waitForTimeout(2500);
+  await clickFirstVisible([
+    page.getByRole('button', { name: /更新する/ }),
+    page.getByRole('button', { name: /^更新$/ }),
+    page.getByRole('button', { name: /公開する/ }),
+    page.getByRole('button', { name: /投稿する/ }),
+    page.getByRole('button', { name: /^公開$/ })
+  ]).catch(() => {});
+  await page.waitForTimeout(6000);
+}
+
+(async () => {
           await el.press('Control+A').catch(() => {});
           await el.type(value, { delay: 30 });
         });
@@ -209,6 +283,30 @@ async function uploadHeaderImage(page, imagePath) {
   page.on('requestfailed', req => console.log('[requestfailed]', req.url(), req.failure()?.errorText || ''));
 
   try {
+    if (post.action === 'updateTagsBatch' && Array.isArray(post.updates)) {
+      const completedUrls = [];
+      for (let index = 0; index < post.updates.length; index++) {
+        const update = post.updates[index];
+        console.log(`ハッシュタグ更新開始 ${index + 1}/${post.updates.length}:`, update.noteId);
+        await page.goto(`https://editor.note.com/notes/${update.noteId}/edit/`, {
+          waitUntil: 'domcontentloaded',
+          timeout: 60000
+        });
+        const titleInput = page.getByPlaceholder('記事タイトル').first();
+        await titleInput.waitFor({ state: 'visible', timeout: 60000 });
+        await page.waitForTimeout(2000);
+        await openPublishSettings(page);
+        await addHashtags(page, update.tags || []);
+        await finalizePublishedUpdate(page);
+        const publicUrl = `https://note.com/${post.noteAccount || 'rapomaru666'}/n/${update.noteId}`;
+        completedUrls.push(publicUrl);
+        console.log(`ハッシュタグ更新完了 ${index + 1}/${post.updates.length}:`, publicUrl);
+      }
+      fs.writeFileSync('all-published-urls.txt', completedUrls.join('\n') + '\n', 'utf8');
+      await page.screenshot({ path: 'note-published.png', fullPage: true });
+      return;
+    }
+
     const updateCoverMode = post.action === 'updateCover' && post.noteId;
     const updateLinksMode = post.action === 'updateLinks' && post.noteId;
     const insertCtasMode = post.action === 'insertCtas' && post.noteId;
@@ -232,6 +330,23 @@ async function uploadHeaderImage(page, imagePath) {
       const items = post.items || [];
       const ctaSentence = post.ctaSentence || 'この作業について詳しく知りたい方はコチラへ';
       const ctaLinkText = post.ctaLinkText || 'コチラへ';
+      const existingCtaAnchors = await editor.locator('a').filter({ hasText: ctaLinkText })
+        .evaluateAll(elements => elements.map(element => element.href));
+      const ctaTextCount = await editor.evaluate((root, needle) => {
+        const text = root.innerText || root.textContent || '';
+        return text.split(needle).length - 1;
+      }, ctaSentence);
+      const ctasAlreadyComplete = ctaTextCount === items.length &&
+        items.every((item, index) => existingCtaAnchors[index] === item.url);
+      if (ctasAlreadyComplete) {
+        fs.writeFileSync(
+          'published-url.txt',
+          `https://note.com/${post.noteAccount || 'rapomaru666'}/n/${post.noteId}`,
+          'utf8'
+        );
+        console.log('説明末尾の案内リンクは設定済みのため変更なし:', post.noteId);
+        return;
+      }
 
       for (let index = items.length - 1; index >= 0; index--) {
         const item = items[index];
