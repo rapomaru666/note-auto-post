@@ -166,7 +166,9 @@ async function uploadHeaderImage(page, imagePath) {
   const storageState = JSON.parse(process.env.NOTE_STORAGE_STATE || '{}');
   const headless = process.env.HEADLESS !== 'false';
 
-  const browser = await chromium.launch({ headless });
+  const launchOptions = { headless };
+  if (process.env.USE_SYSTEM_CHROME === 'true') launchOptions.channel = 'chrome';
+  const browser = await chromium.launch(launchOptions);
   const context = await browser.newContext({ storageState, viewport: { width: 1440, height: 1000 } });
   const page = await context.newPage();
 

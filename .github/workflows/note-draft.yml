@@ -28,12 +28,14 @@ jobs:
         run: npm install
 
       - name: Install Chromium
+        if: ${{ false }}
         run: npx playwright install --with-deps chromium
 
       - name: Publish note
         env:
           NOTE_STORAGE_STATE: ${{ secrets.NOTE_STORAGE_STATE }}
           HEADLESS: 'false'
+          USE_SYSTEM_CHROME: 'true'
         run: |
           set -euo pipefail
           batch_mode="$(node -p "String(require('./post.json').batch || '')")"
