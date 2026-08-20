@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "prepost": "node scripts/generate-cover.js",
     "post": "node scripts/post-note.js"
   },
   "dependencies": {
