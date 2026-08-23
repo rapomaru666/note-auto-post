@@ -21,7 +21,8 @@
     "originalMangaImagesMustNotBeModified": true,
     "uncertainImageRightsFallbackToOriginal": true,
     "foreignEditionKeepsSameStructure": true,
-    "affiliateMonetizationRequired": true
+    "affiliateMonetizationRequired": true,
+    "affiliateApprovalMustMatchTargetSite": true
   },
   "forbiddenPatterns": [
     "おすすめ度",
@@ -47,14 +48,20 @@
   },
   "monetizationPolicy": {
     "required": true,
+    "targetSite": "らぽマン / https://rapomarublog.hatenablog.com/",
+    "approvalMustMatchTargetSite": true,
     "allowOfficialLinkAsAffiliateSubstitute": false,
     "affiliateLinkMustAppearInBody": true,
     "preferredPlacement": "コミックス書影の直後。記事末尾にも購入導線を再掲可能。",
     "siteAffiliateAccounts": [
       "ValueCommerce: らぽマンのサイト参加承認を確認済み。広告主ごとの提携・広告URLは別途確認必須。"
     ],
+    "candidatePrograms": [
+      "もしもアフィリエイト: 楽天ブックスの商品購入 / 成果3% / スクリーンショットではRAPOMARU戦記で提携中。らぽマン側の状態は未確認。",
+      "もしもアフィリエイト: Amazon.co.jp 商品購入 / 成果1.8% / スクリーンショットではRAPOMARU戦記で申請中。らぽマン側の状態は未確認。"
+    ],
     "doNotUseWithoutSiteApproval": [
-      "もしもアフィリエイト: 楽天市場の商品購入（確認できた提携承認サイトはRAPOMARU戦記であり、らぽマン用としては未確認）"
+      "もしもアフィリエイトの戦記向け提携URLを、らぽマン記事へ流用しない。必ず提携対象サイトをらぽマンへ切り替えて確認する。"
     ]
   },
   "publicationGate": {
