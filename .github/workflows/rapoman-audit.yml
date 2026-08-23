@@ -2,11 +2,6 @@ name: RAPOMAN Audit
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'rapoman/post.json'
 
 jobs:
   audit:
