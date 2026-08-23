@@ -1,0 +1,53 @@
+name: RAPOMAN User Grade Test Publish
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'rapoman/post.json'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rapoman-user-grade-test
+  cancel-in-progress: false
+
+jobs:
+  validate-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Deterministic RAPOMAN rules audit
+        run: node scripts/validate-rapoman.js
+
+      - name: Publish test article for user grading
+        env:
+          HATENA_ID: rapomaru666
+          HATENA_API_KEY: ${{ secrets.HATENA_API_KEY }}
+          HATENA_BLOG_ID: rapomarublog.hatenablog.com
+          SENKI_POST_FILE: rapoman/post.json
+          SENKI_LEDGER_FILE: rapoman/published.json
+        run: node scripts/post-senki.js
+
+      - name: Record published RAPOMAN post
+        if: success()
+        run: |
+          if git diff --quiet -- rapoman/published.json; then
+            echo "No publication ledger change."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add rapoman/published.json
+          git commit -m "Record user-grade RAPOMAN test post"
+          git push
