@@ -43,11 +43,31 @@
     "sourceUrl": "",
     "affiliateUrl": ""
   },
+  "affiliateZones": {
+    "primary": {
+      "requiredBodyText": "楽天ブックスでこの作品を見る",
+      "links": [
+        {
+          "provider": "もしもアフィリエイト / 楽天ブックス",
+          "url": ""
+        }
+      ]
+    },
+    "footer": {
+      "requiredBodyText": "この作品を読む・買う",
+      "links": [
+        {
+          "provider": "もしもアフィリエイト / 楽天ブックス",
+          "url": ""
+        }
+      ]
+    }
+  },
   "affiliateLinks": [
     {
-      "provider": "VERIFIED_AFFILIATE_PROVIDER",
+      "provider": "もしもアフィリエイト / 楽天ブックス",
       "url": "",
-      "requiredBodyText": "この作品を購入する"
+      "requiredBodyText": "楽天ブックスでこの作品を見る"
     }
   ],
   "bodyImages": [],
