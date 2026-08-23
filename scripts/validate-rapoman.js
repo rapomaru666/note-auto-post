@@ -32,6 +32,19 @@ add(errors, post.rulesVersion === rules.rulesVersion, `rulesVersionは ${rules.r
 add(errors, typeof post.title === 'string' && post.title.trim().length > 0, 'titleが空です。');
 add(errors, body.trim().length > 0, 'bodyが空です。');
 
+const disclosure = String(post.affiliateDisclosure || '').trim();
+add(errors, disclosure.length > 0, 'アフィリエイト広告の明示文がありません。');
+add(errors, disclosure === rules.monetizationPolicy.disclosureText, `広告明示文は「${rules.monetizationPolicy.disclosureText}」で統一してください。`);
+
+const primaryMarker = rules.renderMarkers.primary;
+const footerMarker = rules.renderMarkers.footer;
+const primaryIndex = body.indexOf(primaryMarker);
+const footerIndex = body.indexOf(footerMarker);
+add(errors, primaryIndex >= 0, `書影＋上部アフィリエイト用マーカーがありません: ${primaryMarker}`);
+add(errors, footerIndex >= 0, `記事末尾アフィリエイト用マーカーがありません: ${footerMarker}`);
+add(errors, footerIndex > primaryIndex, '記事末尾アフィリエイトは上部アフィリエイトより後に置いてください。');
+add(errors, new RegExp(`${footerMarker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`).test(body), '記事末尾アフィリエイト用マーカーは本文の本当に最後に置いてください。');
+
 const userPoints = Array.isArray(post.userPoints) ? post.userPoints : [];
 add(errors, userPoints.length >= rules.minimums.userPoints, `ワイの感想が最低${rules.minimums.userPoints}件必要です。`);
 for (const point of userPoints) {
@@ -55,7 +68,10 @@ const latest = post.latestInfo || {};
 add(errors, /^\d{4}-\d{2}-\d{2}$/.test(String(latest.asOf || '')), 'latestInfo.asOfはYYYY-MM-DD形式必須です。');
 const latestMarker = String(latest.requiredBodyText || '').trim();
 add(errors, latestMarker.length > 0, '最新情報の日付表示用requiredBodyTextが空です。');
-if (latestMarker) add(errors, body.includes(latestMarker), `本文に最新情報の基準日がありません: ${latestMarker}`);
+if (latestMarker) {
+  add(errors, body.includes(latestMarker), `本文に最新情報の基準日がありません: ${latestMarker}`);
+  add(errors, primaryIndex >= 0 && primaryIndex < body.indexOf(latestMarker), '書影＋上部アフィリエイトは最新情報より前に置いてください。');
+}
 add(errors, Array.isArray(latest.sources) && latest.sources.some(validUrl), '最新情報の根拠URLがありません。');
 
 const research = Array.isArray(post.researchSources) ? post.researchSources : [];
@@ -63,59 +79,48 @@ add(errors, research.length >= rules.minimums.researchSources, `調査ソース�
 add(errors, research.filter(item => item.type === 'official' && validUrl(item.url)).length >= rules.minimums.officialSources, `公式ソースが最低${rules.minimums.officialSources}件必要です。`);
 for (const source of research) add(errors, validUrl(source.url), `無効な調査URLがあります: ${source.url || '(空)'}`);
 
+const zones = post.affiliateZones || {};
+const primary = zones.primary || {};
+const footer = zones.footer || {};
+const primaryLinks = Array.isArray(primary.links) ? primary.links : [];
+const footerLinks = Array.isArray(footer.links) ? footer.links : [];
+
+add(errors, primaryLinks.length === (rules.minimums.primaryAffiliateLinks || 1), '書影直下の本命アフィリエイトは1本だけにしてください。');
+add(errors, footerLinks.length >= (rules.minimums.footerAffiliateLinks || 1), '記事末尾のアフィリエイトがありません。');
+add(errors, footerLinks.length <= rules.monetizationPolicy.footerZone.linksAllowedMax, `記事末尾のアフィリエイトは最大${rules.monetizationPolicy.footerZone.linksAllowedMax}本です。`);
+add(errors, String(primary.requiredBodyText || '').trim().length > 0, '上部アフィリエイトの表示文がありません。');
+add(errors, String(footer.requiredBodyText || '').trim() === rules.monetizationPolicy.footerZone.heading, `記事末尾見出しは「${rules.monetizationPolicy.footerZone.heading}」で統一してください。`);
+
+function validateAffiliateLink(link, zoneName) {
+  const provider = String(link?.provider || '').trim();
+  const url = String(link?.url || '').trim();
+  const label = String(link?.label || '').trim();
+  add(errors, provider.length > 0, `${zoneName}アフィリエイトのproviderが空です。`);
+  add(errors, validUrl(url), `${zoneName}アフィリエイトURLが無効です: ${url || '(空)'}`);
+  add(errors, label.length > 0, `${zoneName}アフィリエイトのlabelが空です。`);
+  add(errors, link?.isAffiliate === true, `${zoneName}リンクを通常リンクで代用できません。isAffiliate=true が必要です。`);
+  add(errors, link?.approvedForSite === true, `${zoneName}リンクは「らぽマン」向け提携承認の確認が必要です。`);
+  add(errors, link?.relevantToWork === true, `${zoneName}リンクはその作品を実際に購入・閲覧できるものだけ使用してください。`);
+}
+primaryLinks.forEach(link => validateAffiliateLink(link, '上部'));
+footerLinks.forEach(link => validateAffiliateLink(link, '記事末尾'));
+if (primaryLinks[0] && !String(primaryLinks[0].provider || '').includes('楽天ブックス')) {
+  warnings.push('上部本命導線は、通常は「もしもアフィリエイト / 楽天ブックス」を優先してください。');
+}
+
 const cover = post.comicCover || {};
 add(errors, rules.imagePolicy.coverAllowedTypes.includes(cover.type), `コミックス画像typeが不正です: ${cover.type || '(空)'}`);
+add(errors, validUrl(cover.imageUrl), 'コミックス書影のimageUrlがありません。文字リンクだけでは画像掲載扱いになりません。');
+add(errors, String(cover.alt || '').trim().length > 0, 'コミックス書影のaltがありません。');
 if (cover.type === 'affiliate-cover' || cover.type === 'official-cover') {
-  add(errors, validUrl(cover.imageUrl), 'コミックス書影のimageUrlがありません。');
   add(errors, validUrl(cover.sourceUrl), 'コミックス書影のsourceUrlがありません。');
 }
-if (cover.type === 'affiliate-cover') add(errors, validUrl(cover.affiliateUrl), 'アフィリエイト書影のaffiliateUrlがありません。');
-
-const affiliateLinks = Array.isArray(post.affiliateLinks) ? post.affiliateLinks : [];
-add(errors, affiliateLinks.length >= (rules.minimums.affiliateLinks || 1), `アフィリエイト購入導線が最低${rules.minimums.affiliateLinks || 1}件必要です。公式リンクだけでは公開できません。`);
-for (const link of affiliateLinks) {
-  const provider = String(link.provider || '').trim();
-  const url = String(link.url || '').trim();
-  const marker = String(link.requiredBodyText || '').trim();
-  add(errors, provider.length > 0, 'アフィリエイト導線のproviderが空です。');
-  add(errors, validUrl(url), `アフィリエイトURLが無効です: ${url || '(空)'}`);
-  add(errors, marker.length > 0, `アフィリエイト導線「${provider || '名称なし'}」のrequiredBodyTextが空です。`);
-  if (url) add(errors, body.includes(url), `アフィリエイトURLが本文にありません: ${url}`);
-  if (marker) add(errors, body.includes(marker), `アフィリエイト購入導線が本文から欠落しています: ${marker}`);
+if (cover.type === 'affiliate-cover') {
+  add(errors, validUrl(cover.affiliateUrl), 'アフィリエイト書影のaffiliateUrlがありません。');
+  if (primaryLinks[0]) add(errors, cover.affiliateUrl === primaryLinks[0].url, '書影クリック先と上部本命アフィリエイトURLを同一にしてください。');
 }
-
-const zones = post.affiliateZones || {};
-const requiredZones = ['primary', 'footer'];
-let validZoneCount = 0;
-for (const zoneName of requiredZones) {
-  const zone = zones[zoneName] || {};
-  const marker = String(zone.requiredBodyText || '').trim();
-  const links = Array.isArray(zone.links) ? zone.links : [];
-  add(errors, marker.length > 0, `アフィリエイト${zoneName}ゾーンのrequiredBodyTextが空です。`);
-  if (marker) add(errors, body.includes(marker), `アフィリエイト${zoneName}ゾーンが本文から欠落しています: ${marker}`);
-  add(errors, links.length >= 1, `アフィリエイト${zoneName}ゾーンに最低1件のリンクが必要です。`);
-  let zoneHasValidLink = false;
-  for (const link of links) {
-    const provider = String(link.provider || '').trim();
-    const url = String(link.url || '').trim();
-    add(errors, provider.length > 0, `アフィリエイト${zoneName}ゾーンのproviderが空です。`);
-    add(errors, validUrl(url), `アフィリエイト${zoneName}ゾーンのURLが無効です: ${url || '(空)'}`);
-    if (validUrl(url)) {
-      zoneHasValidLink = true;
-      add(errors, body.includes(url), `アフィリエイト${zoneName}ゾーンのURLが本文にありません: ${url}`);
-    }
-  }
-  if (marker && body.includes(marker) && zoneHasValidLink) validZoneCount += 1;
-}
-add(errors, validZoneCount >= (rules.minimums.affiliateZones || 2), `アフィリエイト配置は書影直下と記事末尾の2か所が必須です。`);
-
-const primaryLinks = Array.isArray(zones.primary?.links) ? zones.primary.links : [];
-if (primaryLinks.length > (rules.monetizationPolicy?.primaryZone?.recommendedMaxLinks || 1)) {
-  warnings.push('書影直下の購入導線は1本に絞るのが推奨です。');
-}
-const footerLinks = Array.isArray(zones.footer?.links) ? zones.footer.links : [];
-if (footerLinks.length > (rules.monetizationPolicy?.footerZone?.recommendedMaxLinks || 4)) {
-  warnings.push('記事末尾のアフィリエイトは4件以内推奨です。多すぎると読みにくくなります。');
+if (cover.type === 'original') {
+  add(errors, String(cover.fallbackReason || '').trim().length > 0, 'オリジナル画像へフォールバックする理由が必要です。');
 }
 
 const bodyImages = Array.isArray(post.bodyImages) ? post.bodyImages : [];
