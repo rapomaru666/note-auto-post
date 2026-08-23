@@ -28,6 +28,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Gate 0 - readability structure
+        run: node scripts/validate-rapoman-rendering.js
+
       - name: Gate 1 - deterministic RAPOMAN rules
         run: node scripts/validate-rapoman.js
 
@@ -37,14 +40,14 @@ jobs:
           GEMINI_MODEL: gemini-3.1-flash-lite
         run: node scripts/audit-rapoman-gemini.js
 
-      - name: Publish only after both gates pass
+      - name: Publish only after all gates pass
         env:
           HATENA_ID: rapomaru666
           HATENA_API_KEY: ${{ secrets.HATENA_API_KEY }}
           HATENA_BLOG_ID: rapomarublog.hatenablog.com
-          SENKI_POST_FILE: rapoman/post.json
-          SENKI_LEDGER_FILE: rapoman/published.json
-        run: node scripts/post-senki.js
+          RAPOMAN_POST_FILE: rapoman/post.json
+          RAPOMAN_LEDGER_FILE: rapoman/published.json
+        run: node scripts/post-rapoman.js
 
       - name: Save audit and publish result
         if: always()
