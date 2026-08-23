@@ -1,0 +1,9 @@
+{
+  "mode": "new",
+  "title": "作品名｜ワイの一言感想",
+  "custom_url": "example-slug",
+  "categories": ["漫画", "作品名"],
+  "isbn": "9780000000000",
+  "official_domain": "publisher.example.jp",
+  "body_html": "<h2>本文</h2><p>500文字以上...</p>"
+}
