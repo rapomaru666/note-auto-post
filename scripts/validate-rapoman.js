@@ -71,6 +71,19 @@ if (cover.type === 'affiliate-cover' || cover.type === 'official-cover') {
 }
 if (cover.type === 'affiliate-cover') add(errors, validUrl(cover.affiliateUrl), 'アフィリエイト書影のaffiliateUrlがありません。');
 
+const affiliateLinks = Array.isArray(post.affiliateLinks) ? post.affiliateLinks : [];
+add(errors, affiliateLinks.length >= (rules.minimums.affiliateLinks || 1), `アフィリエイト購入導線が最低${rules.minimums.affiliateLinks || 1}件必要です。公式リンクだけでは公開できません。`);
+for (const link of affiliateLinks) {
+  const provider = String(link.provider || '').trim();
+  const url = String(link.url || '').trim();
+  const marker = String(link.requiredBodyText || '').trim();
+  add(errors, provider.length > 0, 'アフィリエイト導線のproviderが空です。');
+  add(errors, validUrl(url), `アフィリエイトURLが無効です: ${url || '(空)'}`);
+  add(errors, marker.length > 0, `アフィリエイト導線「${provider || '名称なし'}」のrequiredBodyTextが空です。`);
+  if (url) add(errors, body.includes(url), `アフィリエイトURLが本文にありません: ${url}`);
+  if (marker) add(errors, body.includes(marker), `アフィリエイト購入導線が本文から欠落しています: ${marker}`);
+}
+
 const bodyImages = Array.isArray(post.bodyImages) ? post.bodyImages : [];
 for (const image of bodyImages) {
   add(errors, rules.imagePolicy.bodyAllowedTypes.includes(image.type), `本文画像typeが不正です: ${image.type || '(空)'}`);
