@@ -41,28 +41,20 @@
     "affiliateLinks": 1
   },
   "imagePolicy": {
-    "coverAllowedTypes": [
-      "affiliate-cover",
-      "official-cover",
-      "original"
-    ],
-    "bodyAllowedTypes": [
-      "quoted-original",
-      "original"
-    ],
-    "quotedOriginalRequires": [
-      "sourceUrl",
-      "purpose",
-      "unchanged"
-    ]
+    "coverAllowedTypes": ["affiliate-cover", "official-cover", "original"],
+    "bodyAllowedTypes": ["quoted-original", "original"],
+    "quotedOriginalRequires": ["sourceUrl", "purpose", "unchanged"]
   },
   "monetizationPolicy": {
     "required": true,
     "allowOfficialLinkAsAffiliateSubstitute": false,
     "affiliateLinkMustAppearInBody": true,
     "preferredPlacement": "コミックス書影の直後。記事末尾にも購入導線を再掲可能。",
-    "knownApprovedPrograms": [
-      "もしもアフィリエイト: 楽天市場の商品購入"
+    "siteAffiliateAccounts": [
+      "ValueCommerce: らぽマンのサイト参加承認を確認済み。広告主ごとの提携・広告URLは別途確認必須。"
+    ],
+    "doNotUseWithoutSiteApproval": [
+      "もしもアフィリエイト: 楽天市場の商品購入（確認できた提携承認サイトはRAPOMARU戦記であり、らぽマン用としては未確認）"
     ]
   },
   "publicationGate": {
