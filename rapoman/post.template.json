@@ -1,0 +1,54 @@
+{
+  "rulesVersion": "rapoman-manga-v1",
+  "postKey": "YYYY-MM-DD-work-slug",
+  "title": "",
+  "body": "",
+  "contentType": "text/x-markdown",
+  "categories": ["漫画"],
+  "userPoints": [
+    {
+      "label": "ワイの感想",
+      "requiredBodyText": ""
+    }
+  ],
+  "mustCoverTopics": [
+    {
+      "topic": "作品を語るなら外せない王道ポイント",
+      "requiredBodyText": "",
+      "sources": []
+    }
+  ],
+  "latestInfo": {
+    "asOf": "YYYY-MM-DD",
+    "requiredBodyText": "YYYY年M月D日時点",
+    "sources": []
+  },
+  "researchSources": [
+    {
+      "type": "official",
+      "url": ""
+    },
+    {
+      "type": "wikipedia",
+      "url": ""
+    },
+    {
+      "type": "reference",
+      "url": ""
+    }
+  ],
+  "comicCover": {
+    "type": "affiliate-cover",
+    "imageUrl": "",
+    "sourceUrl": "",
+    "affiliateUrl": ""
+  },
+  "bodyImages": [],
+  "passionChapters": [
+    {
+      "heading": ""
+    }
+  ],
+  "language": "ja",
+  "draft": false
+}
