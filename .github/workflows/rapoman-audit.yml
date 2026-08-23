@@ -1,0 +1,46 @@
+name: RAPOMAN Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'rapoman/post.json'
+      - 'rapoman/rules-v1.json'
+      - 'scripts/validate-rapoman.js'
+      - 'scripts/audit-rapoman-gemini.js'
+      - '.github/workflows/rapoman-audit.yml'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Deterministic rules audit
+        run: node scripts/validate-rapoman.js
+
+      - name: Independent Gemini audit
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: gemini-3.1-flash-lite
+        run: node scripts/audit-rapoman-gemini.js
+
+      - name: Save audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapoman-audit-${{ github.run_number }}
+          path: |
+            rapoman/deterministic-audit.json
+            rapoman/ai-audit.json
+          if-no-files-found: ignore
+          retention-days: 14
