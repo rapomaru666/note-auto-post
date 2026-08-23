@@ -1,14 +1,14 @@
 {
-  "rulesVersion": "rapoman-manga-v1",
+  "rulesVersion": "rapoman-manga-v2",
   "concept": "ワイが好きな漫画について『好きだああああああ！！！』と世界に叫ぶ。ユーザーの感性が主役で、AIは王道ポイント・事実・背景・抜け漏れを補完する編集者兼リサーチャーに徹する。",
   "requiredOrder": [
     "title",
     "passionLead",
-    "comicCover",
-    "affiliatePrimaryZone",
+    "comicCoverAndPrimaryAffiliate",
     "latestInfo",
     "basicInfo",
     "passionChapters",
+    "sourceReferences",
     "affiliateFooterZone"
   ],
   "hardRules": {
@@ -24,7 +24,10 @@
     "foreignEditionKeepsSameStructure": true,
     "affiliateMonetizationRequired": true,
     "affiliateApprovalMustMatchTargetSite": true,
-    "twoAffiliateZonesRequired": true
+    "twoAffiliateZonesRequired": true,
+    "coverImageMustActuallyRender": true,
+    "footerAffiliateZoneMustBeLast": true,
+    "affiliateDisclosureRequired": true
   },
   "forbiddenPatterns": [
     "おすすめ度",
@@ -41,11 +44,21 @@
     "researchSources": 3,
     "officialSources": 1,
     "passionChapters": 1,
-    "affiliateLinks": 1,
-    "affiliateZones": 2
+    "affiliateZones": 2,
+    "primaryAffiliateLinks": 1,
+    "footerAffiliateLinks": 1
+  },
+  "renderMarkers": {
+    "primary": "[[RAPOMAN_PRIMARY_AFFILIATE]]",
+    "footer": "[[RAPOMAN_FOOTER_AFFILIATE]]"
   },
   "imagePolicy": {
+    "coverPreferredType": "affiliate-cover",
     "coverAllowedTypes": ["affiliate-cover", "official-cover", "original"],
+    "coverRequiresImageUrl": true,
+    "coverRequiresAlt": true,
+    "affiliateCoverMustLinkToPrimaryAffiliate": true,
+    "originalFallbackRequiresReason": true,
     "bodyAllowedTypes": ["quoted-original", "original"],
     "quotedOriginalRequires": ["sourceUrl", "purpose", "unchanged"]
   },
@@ -54,36 +67,44 @@
     "targetSite": "らぽマン / https://rapomarublog.hatenablog.com/",
     "approvalMustMatchTargetSite": true,
     "allowOfficialLinkAsAffiliateSubstitute": false,
-    "affiliateLinkMustAppearInBody": true,
+    "disclosureText": "※本記事にはアフィリエイト広告を含みます。",
     "primaryZone": {
-      "location": "コミックス書影の直後",
-      "purpose": "迷わせず1つの本命購入導線を見せる",
-      "recommendedMaxLinks": 1,
-      "coverMayBeClickable": true
+      "location": "ワイのパッション導入の直後。コミックス書影＋本命購入導線を表示する。",
+      "linksRequiredExactly": 1,
+      "preferredProvider": "もしもアフィリエイト / 楽天ブックス",
+      "coverClickable": true,
+      "coverDesktopMaxWidthPx": 260,
+      "coverMobileResponsive": true
     },
     "footerZone": {
-      "location": "記事本文の最後",
-      "purpose": "購入・電子書籍・読み放題など実際に使える選択肢をまとめる",
-      "recommendedMinLinks": 1,
-      "recommendedMaxLinks": 4,
-      "noUnrelatedOffers": true
+      "location": "記事の一番下。作品情報ソースより後ろ。",
+      "heading": "この作品を読む・買う",
+      "linksRequiredMin": 1,
+      "linksAllowedMax": 4,
+      "repeatPrimaryAllowed": true,
+      "noUnrelatedOffers": true,
+      "additionalProvidersRequireConfirmedSiteApproval": true,
+      "additionalProvidersRequireWorkRelevance": true
     },
     "siteAffiliateAccounts": [
-      "ValueCommerce: らぽマンのサイト参加承認を確認済み。広告主ごとの提携・広告URLは別途確認必須。",
+      "もしもアフィリエイト: らぽマンで楽天ブックスの商品購入を提携承認済み。",
       "もしもアフィリエイト: らぽマンで楽天市場の商品購入を提携承認済み。",
-      "もしもアフィリエイト: らぽマンで楽天ブックスの商品購入を提携承認済み。"
+      "ValueCommerce: らぽマンのサイト参加承認を確認済み。広告主ごとの提携・広告URLは別途確認必須。"
     ],
-    "candidatePrograms": [
-      "もしもアフィリエイト: 楽天ブックスの商品購入 / 本命の単行本購入導線。",
-      "もしもアフィリエイト: 楽天市場の商品購入 / 商品が楽天市場側にある場合の補助候補。",
-      "Amazon.co.jp / 電子書籍・読み放題サービス / A8案件は、らぽマン用の提携と対象作品・サービス利用可否を確認できた場合のみ記事末尾に追加。"
+    "defaultPrograms": [
+      "もしもアフィリエイト / 楽天ブックス: 単行本購入の本命。上部1本＋記事末尾で再掲。",
+      "もしもアフィリエイト / 楽天市場: 対象商品がある場合のみ記事末尾の補助候補。",
+      "Amazon.co.jp・電子書籍・読み放題・A8・ValueCommerce案件: らぽマン用の提携承認と、その作品を実際に購入・閲覧できることを確認した場合のみ記事末尾へ追加。"
     ],
-    "doNotUseWithoutSiteApproval": [
+    "doNotUse": [
       "RAPOMARU戦記向けに発行された提携URLを、らぽマン記事へ流用しない。",
-      "作品と無関係な高報酬案件を記事末尾へ並べない。"
+      "公式の通常リンクをアフィリエイトリンクとして扱わない。",
+      "作品と無関係な高報酬案件を記事末尾へ置かない。",
+      "書影の代わりに文字リンクだけを置いて画像掲載済み扱いにしない。"
     ]
   },
   "publicationGate": {
+    "readabilityValidationRequired": true,
     "deterministicValidationRequired": true,
     "independentAiAuditRequired": true,
     "failClosed": true
