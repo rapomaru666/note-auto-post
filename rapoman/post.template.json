@@ -45,9 +45,9 @@
   },
   "affiliateLinks": [
     {
-      "provider": "もしもアフィリエイト / 楽天市場",
+      "provider": "VERIFIED_AFFILIATE_PROVIDER",
       "url": "",
-      "requiredBodyText": "楽天市場でこの作品を見る"
+      "requiredBodyText": "この作品を購入する"
     }
   ],
   "bodyImages": [],
