@@ -84,6 +84,40 @@ for (const link of affiliateLinks) {
   if (marker) add(errors, body.includes(marker), `アフィリエイト購入導線が本文から欠落しています: ${marker}`);
 }
 
+const zones = post.affiliateZones || {};
+const requiredZones = ['primary', 'footer'];
+let validZoneCount = 0;
+for (const zoneName of requiredZones) {
+  const zone = zones[zoneName] || {};
+  const marker = String(zone.requiredBodyText || '').trim();
+  const links = Array.isArray(zone.links) ? zone.links : [];
+  add(errors, marker.length > 0, `アフィリエイト${zoneName}ゾーンのrequiredBodyTextが空です。`);
+  if (marker) add(errors, body.includes(marker), `アフィリエイト${zoneName}ゾーンが本文から欠落しています: ${marker}`);
+  add(errors, links.length >= 1, `アフィリエイト${zoneName}ゾーンに最低1件のリンクが必要です。`);
+  let zoneHasValidLink = false;
+  for (const link of links) {
+    const provider = String(link.provider || '').trim();
+    const url = String(link.url || '').trim();
+    add(errors, provider.length > 0, `アフィリエイト${zoneName}ゾーンのproviderが空です。`);
+    add(errors, validUrl(url), `アフィリエイト${zoneName}ゾーンのURLが無効です: ${url || '(空)'}`);
+    if (validUrl(url)) {
+      zoneHasValidLink = true;
+      add(errors, body.includes(url), `アフィリエイト${zoneName}ゾーンのURLが本文にありません: ${url}`);
+    }
+  }
+  if (marker && body.includes(marker) && zoneHasValidLink) validZoneCount += 1;
+}
+add(errors, validZoneCount >= (rules.minimums.affiliateZones || 2), `アフィリエイト配置は書影直下と記事末尾の2か所が必須です。`);
+
+const primaryLinks = Array.isArray(zones.primary?.links) ? zones.primary.links : [];
+if (primaryLinks.length > (rules.monetizationPolicy?.primaryZone?.recommendedMaxLinks || 1)) {
+  warnings.push('書影直下の購入導線は1本に絞るのが推奨です。');
+}
+const footerLinks = Array.isArray(zones.footer?.links) ? zones.footer.links : [];
+if (footerLinks.length > (rules.monetizationPolicy?.footerZone?.recommendedMaxLinks || 4)) {
+  warnings.push('記事末尾のアフィリエイトは4件以内推奨です。多すぎると読みにくくなります。');
+}
+
 const bodyImages = Array.isArray(post.bodyImages) ? post.bodyImages : [];
 for (const image of bodyImages) {
   add(errors, rules.imagePolicy.bodyAllowedTypes.includes(image.type), `本文画像typeが不正です: ${image.type || '(空)'}`);
