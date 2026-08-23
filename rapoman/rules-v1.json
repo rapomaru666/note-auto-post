@@ -5,6 +5,7 @@
     "title",
     "passionLead",
     "comicCover",
+    "affiliatePurchaseLinks",
     "latestInfo",
     "basicInfo",
     "passionChapters"
@@ -19,7 +20,8 @@
     "passionChapterCountIsVariable": true,
     "originalMangaImagesMustNotBeModified": true,
     "uncertainImageRightsFallbackToOriginal": true,
-    "foreignEditionKeepsSameStructure": true
+    "foreignEditionKeepsSameStructure": true,
+    "affiliateMonetizationRequired": true
   },
   "forbiddenPatterns": [
     "おすすめ度",
@@ -35,7 +37,8 @@
     "mustCoverTopics": 1,
     "researchSources": 3,
     "officialSources": 1,
-    "passionChapters": 1
+    "passionChapters": 1,
+    "affiliateLinks": 1
   },
   "imagePolicy": {
     "coverAllowedTypes": [
@@ -51,6 +54,15 @@
       "sourceUrl",
       "purpose",
       "unchanged"
+    ]
+  },
+  "monetizationPolicy": {
+    "required": true,
+    "allowOfficialLinkAsAffiliateSubstitute": false,
+    "affiliateLinkMustAppearInBody": true,
+    "preferredPlacement": "コミックス書影の直後。記事末尾にも購入導線を再掲可能。",
+    "knownApprovedPrograms": [
+      "もしもアフィリエイト: 楽天市場の商品購入"
     ]
   },
   "publicationGate": {
