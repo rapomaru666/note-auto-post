@@ -5,10 +5,11 @@
     "title",
     "passionLead",
     "comicCover",
-    "affiliatePurchaseLinks",
+    "affiliatePrimaryZone",
     "latestInfo",
     "basicInfo",
-    "passionChapters"
+    "passionChapters",
+    "affiliateFooterZone"
   ],
   "hardRules": {
     "userVoiceIsPrimary": true,
@@ -22,7 +23,8 @@
     "uncertainImageRightsFallbackToOriginal": true,
     "foreignEditionKeepsSameStructure": true,
     "affiliateMonetizationRequired": true,
-    "affiliateApprovalMustMatchTargetSite": true
+    "affiliateApprovalMustMatchTargetSite": true,
+    "twoAffiliateZonesRequired": true
   },
   "forbiddenPatterns": [
     "おすすめ度",
@@ -39,7 +41,8 @@
     "researchSources": 3,
     "officialSources": 1,
     "passionChapters": 1,
-    "affiliateLinks": 1
+    "affiliateLinks": 1,
+    "affiliateZones": 2
   },
   "imagePolicy": {
     "coverAllowedTypes": ["affiliate-cover", "official-cover", "original"],
@@ -52,16 +55,32 @@
     "approvalMustMatchTargetSite": true,
     "allowOfficialLinkAsAffiliateSubstitute": false,
     "affiliateLinkMustAppearInBody": true,
-    "preferredPlacement": "コミックス書影の直後。記事末尾にも購入導線を再掲可能。",
+    "primaryZone": {
+      "location": "コミックス書影の直後",
+      "purpose": "迷わせず1つの本命購入導線を見せる",
+      "recommendedMaxLinks": 1,
+      "coverMayBeClickable": true
+    },
+    "footerZone": {
+      "location": "記事本文の最後",
+      "purpose": "購入・電子書籍・読み放題など実際に使える選択肢をまとめる",
+      "recommendedMinLinks": 1,
+      "recommendedMaxLinks": 4,
+      "noUnrelatedOffers": true
+    },
     "siteAffiliateAccounts": [
-      "ValueCommerce: らぽマンのサイト参加承認を確認済み。広告主ごとの提携・広告URLは別途確認必須。"
+      "ValueCommerce: らぽマンのサイト参加承認を確認済み。広告主ごとの提携・広告URLは別途確認必須。",
+      "もしもアフィリエイト: らぽマンで楽天市場の商品購入を提携承認済み。",
+      "もしもアフィリエイト: らぽマンで楽天ブックスの商品購入を提携承認済み。"
     ],
     "candidatePrograms": [
-      "もしもアフィリエイト: 楽天ブックスの商品購入 / 成果3% / スクリーンショットではRAPOMARU戦記で提携中。らぽマン側の状態は未確認。",
-      "もしもアフィリエイト: Amazon.co.jp 商品購入 / 成果1.8% / スクリーンショットではRAPOMARU戦記で申請中。らぽマン側の状態は未確認。"
+      "もしもアフィリエイト: 楽天ブックスの商品購入 / 本命の単行本購入導線。",
+      "もしもアフィリエイト: 楽天市場の商品購入 / 商品が楽天市場側にある場合の補助候補。",
+      "Amazon.co.jp / 電子書籍・読み放題サービス / A8案件は、らぽマン用の提携と対象作品・サービス利用可否を確認できた場合のみ記事末尾に追加。"
     ],
     "doNotUseWithoutSiteApproval": [
-      "もしもアフィリエイトの戦記向け提携URLを、らぽマン記事へ流用しない。必ず提携対象サイトをらぽマンへ切り替えて確認する。"
+      "RAPOMARU戦記向けに発行された提携URLを、らぽマン記事へ流用しない。",
+      "作品と無関係な高報酬案件を記事末尾へ並べない。"
     ]
   },
   "publicationGate": {
