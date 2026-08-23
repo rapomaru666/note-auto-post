@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f7f7f5"/>
+  <path d="M0 0H600L470 630H0Z" fill="#c92d2d"/>
+  <path d="M600 0H1200V630H470Z" fill="#245b9e"/>
+  <circle cx="600" cy="315" r="185" fill="#111" opacity="0.88"/>
+  <circle cx="600" cy="315" r="145" fill="none" stroke="#f7f7f5" stroke-width="8" opacity="0.9"/>
+  <text x="600" y="285" text-anchor="middle" font-family="sans-serif" font-size="78" font-weight="800" fill="#fff">RAPOMAN</text>
+  <text x="600" y="365" text-anchor="middle" font-family="sans-serif" font-size="68" font-weight="800" fill="#fff">レッドブルー</text>
+  <text x="600" y="455" text-anchor="middle" font-family="sans-serif" font-size="32" font-weight="700" fill="#fff">MMA / 根暗 / 寝技 / シャークジム</text>
+  <text x="55" y="585" font-family="sans-serif" font-size="28" font-weight="700" fill="#fff">ワイはこの人間関係が好きだあああ！！！</text>
+</svg>
