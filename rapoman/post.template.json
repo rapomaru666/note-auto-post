@@ -43,6 +43,13 @@
     "sourceUrl": "",
     "affiliateUrl": ""
   },
+  "affiliateLinks": [
+    {
+      "provider": "もしもアフィリエイト / 楽天市場",
+      "url": "",
+      "requiredBodyText": "楽天市場でこの作品を見る"
+    }
+  ],
   "bodyImages": [],
   "passionChapters": [
     {
