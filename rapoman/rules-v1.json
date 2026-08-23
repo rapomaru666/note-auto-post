@@ -1,0 +1,61 @@
+{
+  "rulesVersion": "rapoman-manga-v1",
+  "concept": "ワイが好きな漫画について『好きだああああああ！！！』と世界に叫ぶ。ユーザーの感性が主役で、AIは王道ポイント・事実・背景・抜け漏れを補完する編集者兼リサーチャーに徹する。",
+  "requiredOrder": [
+    "title",
+    "passionLead",
+    "comicCover",
+    "latestInfo",
+    "basicInfo",
+    "passionChapters"
+  ],
+  "hardRules": {
+    "userVoiceIsPrimary": true,
+    "aiMustNotOverwriteUserOpinion": true,
+    "majorPointsMustBeResearched": true,
+    "majorPointsAreSupportingMaterial": true,
+    "latestInfoRequiresAsOfDate": true,
+    "basicInfoRequiresResearchSources": true,
+    "passionChapterCountIsVariable": true,
+    "originalMangaImagesMustNotBeModified": true,
+    "uncertainImageRightsFallbackToOriginal": true,
+    "foreignEditionKeepsSameStructure": true
+  },
+  "forbiddenPatterns": [
+    "おすすめ度",
+    "こんな人におすすめ",
+    "メリット・デメリット",
+    "メリット／デメリット",
+    "星評価",
+    "★5",
+    "5段階評価"
+  ],
+  "minimums": {
+    "userPoints": 1,
+    "mustCoverTopics": 1,
+    "researchSources": 3,
+    "officialSources": 1,
+    "passionChapters": 1
+  },
+  "imagePolicy": {
+    "coverAllowedTypes": [
+      "affiliate-cover",
+      "official-cover",
+      "original"
+    ],
+    "bodyAllowedTypes": [
+      "quoted-original",
+      "original"
+    ],
+    "quotedOriginalRequires": [
+      "sourceUrl",
+      "purpose",
+      "unchanged"
+    ]
+  },
+  "publicationGate": {
+    "deterministicValidationRequired": true,
+    "independentAiAuditRequired": true,
+    "failClosed": true
+  }
+}
