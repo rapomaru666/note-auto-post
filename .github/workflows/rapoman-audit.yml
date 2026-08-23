@@ -7,10 +7,6 @@ on:
       - main
     paths:
       - 'rapoman/post.json'
-      - 'rapoman/rules-v1.json'
-      - 'scripts/validate-rapoman.js'
-      - 'scripts/audit-rapoman-gemini.js'
-      - '.github/workflows/rapoman-audit.yml'
 
 jobs:
   audit:
