@@ -1,0 +1,26 @@
+{
+  "series": "intermediate",
+  "canonicalIndex": {
+    "postKey": "intermediate-00",
+    "noteId": "n3f7dc0a489f9",
+    "url": "https://note.com/rapomaru666/n/n3f7dc0a489f9",
+    "status": "published"
+  },
+  "articles": {
+    "01": {"postKey":"intermediate-01","noteId":"n9cc825102909","url":"https://note.com/rapomaru666/n/n9cc825102909","price":300,"status":"published"},
+    "02": {"postKey":"intermediate-02","noteId":"n706aa78791b0","url":"https://note.com/rapomaru666/n/n706aa78791b0","price":300,"status":"published"},
+    "03": {"postKey":"intermediate-03","noteId":"n72e0ce94f7ed","url":"https://note.com/rapomaru666/n/n72e0ce94f7ed","price":300,"status":"published"},
+    "04": {"postKey":"intermediate-04","noteId":"n6ea446e1d363","url":"https://note.com/rapomaru666/n/n6ea446e1d363","price":300,"status":"published"},
+    "05": {"postKey":"intermediate-05","noteId":"ne9a5c52eba1c","url":"https://note.com/rapomaru666/n/ne9a5c52eba1c","price":300,"status":"published"},
+    "06": {"postKey":"intermediate-06","noteId":"n8046e881e3cc","url":"https://note.com/rapomaru666/n/n8046e881e3cc","price":300,"status":"published"},
+    "07": {"postKey":"intermediate-07","noteId":"n4b3e32367084","url":"https://note.com/rapomaru666/n/n4b3e32367084","price":300,"status":"published"},
+    "08": {"postKey":"intermediate-08","noteId":"n8d21f6b17bc0","url":"https://note.com/rapomaru666/n/n8d21f6b17bc0","price":300,"status":"published"},
+    "09": {"postKey":"intermediate-09","noteId":"n56e546f3120d","url":"https://note.com/rapomaru666/n/n56e546f3120d","price":300,"status":"published"}
+  },
+  "legacy": {
+    "oldCanonicalCandidate": {"noteId":"nb145eabd5dd5","status":"legacy-review"},
+    "duplicateIndex": {"noteId":"nb7c2e0604c53","status":"legacy-review"},
+    "oldArticle01": {"noteId":"n13b1ca5b188b","status":"legacy-review"}
+  },
+  "updatedAt": "2026-08-30T14:15:00Z"
+}
