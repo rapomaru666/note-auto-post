@@ -1,3 +1,4 @@
+# Trigger one-off RAPOMAN publish
 name: RAPOMAN Oneoff Otona Taisen
 
 on:
