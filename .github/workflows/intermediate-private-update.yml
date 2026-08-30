@@ -1,0 +1,130 @@
+name: Note Intermediate Private Content Update
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/intermediate-private-update.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: note-intermediate-private-update
+  cancel-in-progress: false
+
+jobs:
+  update-private-content:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Generate ephemeral transfer key
+        run: |
+          set -euo pipefail
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out /tmp/intermediate-transfer-private.pem
+          openssl pkey -in /tmp/intermediate-transfer-private.pem -pubout -out intermediate/transfer-public-key.pem
+          git add intermediate/transfer-public-key.pem
+          git commit -m "Open ephemeral encrypted transfer window"
+          git push
+
+      - name: Wait for encrypted payload
+        run: |
+          set -euo pipefail
+          found=0
+          for attempt in $(seq 1 240); do
+            git fetch -q origin main
+            if git show origin/main:intermediate/transfer-payload.json > /tmp/transfer-payload.json 2>/dev/null; then
+              found=1
+              echo "encrypted payload received"
+              break
+            fi
+            sleep 15
+          done
+          if [ "$found" != "1" ]; then
+            echo "encrypted payload was not received within one hour" >&2
+            exit 1
+          fi
+
+      - name: Decrypt payload only in runner memory
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64, json
+          p=json.load(open('/tmp/transfer-payload.json','r',encoding='utf-8'))
+          open('/tmp/transfer-key.enc','wb').write(base64.b64decode(p['encryptedKey']))
+          open('/tmp/transfer-data.enc','wb').write(base64.b64decode(p['ciphertext']))
+          PY
+          openssl pkeyutl -decrypt \
+            -inkey /tmp/intermediate-transfer-private.pem \
+            -in /tmp/transfer-key.enc \
+            -pkeyopt rsa_padding_mode:oaep \
+            -pkeyopt rsa_oaep_md:sha256 \
+            -out /tmp/transfer-pass.txt
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
+            -pass file:/tmp/transfer-pass.txt \
+            -in /tmp/transfer-data.enc \
+            -out /tmp/intermediate-private-payload.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p=JSON.parse(fs.readFileSync('/tmp/intermediate-private-payload.json','utf8'));
+          if (!Array.isArray(p.articles) || p.articles.length !== 10) throw new Error('private payload must contain 10 articles');
+          console.log('private payload validated: 10 articles');
+          NODE
+
+      - name: Update existing note articles without new posts
+        env:
+          NOTE_STORAGE_STATE: ${{ secrets.NOTE_STORAGE_STATE }}
+          PRIVATE_PAYLOAD_FILE: /tmp/intermediate-private-payload.json
+        run: xvfb-run -a node scripts/update-intermediate-private.js
+
+      - name: Record completion
+        if: success()
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+          rm -f intermediate/transfer-public-key.pem intermediate/transfer-payload.json
+          cat > intermediate/private-update-status.json <<EOF
+          {
+            "status": "completed",
+            "articleCount": 10,
+            "completedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "plaintextStoredInPublicRepository": false
+          }
+          EOF
+          git add -A intermediate/transfer-public-key.pem intermediate/transfer-payload.json intermediate/private-update-status.json
+          git commit -m "Complete encrypted intermediate content update"
+          git push
+
+      - name: Remove transfer files after failure
+        if: failure()
+        continue-on-error: true
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+          rm -f intermediate/transfer-public-key.pem intermediate/transfer-payload.json
+          git add -A intermediate/transfer-public-key.pem intermediate/transfer-payload.json
+          git commit -m "Close failed encrypted transfer window" || true
+          git push || true
+
+      - name: Destroy ephemeral plaintext
+        if: always()
+        run: |
+          rm -f /tmp/intermediate-transfer-private.pem /tmp/transfer-pass.txt /tmp/transfer-key.enc /tmp/transfer-data.enc /tmp/transfer-payload.json /tmp/intermediate-private-payload.json /tmp/private-update-progress.json /tmp/private-update-final.png
