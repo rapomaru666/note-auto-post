@@ -2,14 +2,6 @@ name: Note Publish
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'post.json'
-      - 'scripts/post-note.js'
-      - 'assets/**'
-      - '.github/workflows/note-draft.yml'
 
 jobs:
   publish-note:
