@@ -1,0 +1,36 @@
+name: RAPOMAN Dandadan
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'rapoman/oneoff-dandadan.json'
+      - '.github/workflows/rapoman-dandadan.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Publish Dandadan to RAPOMAN
+        env:
+          HATENA_ID: rapomaru666
+          HATENA_API_KEY: ${{ secrets.HATENA_API_KEY }}
+          HATENA_BLOG_ID: rapomarublog.hatenablog.com
+          SENKI_POST_FILE: rapoman/oneoff-dandadan.json
+          SENKI_LEDGER_FILE: rapoman/published.json
+        run: node scripts/post-senki.js
+      - name: Record post
+        if: success()
+        run: |
+          if git diff --quiet -- rapoman/published.json; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add rapoman/published.json
+          git commit -m "Record Dandadan RAPOMAN post"
+          git push
