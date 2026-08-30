@@ -1,5 +1,16 @@
 {
   "series": "ChatGPTを使ってnoteを投稿する方法 中級編",
-  "status": "ready",
-  "articles": {}
+  "status": "publishing",
+  "articles": {
+    "00": {
+      "number": "00",
+      "title": "ChatGPTでnoteを自動投稿する方法｜GitHub Actionsで記事作成から公開まで【中級編】",
+      "paid": false,
+      "price": 0,
+      "noteId": "n3f7dc0a489f9",
+      "url": "https://note.com/rapomaru666/n/n3f7dc0a489f9",
+      "publishedAt": "2026-08-30T08:50:30.642Z"
+    }
+  },
+  "updatedAt": "2026-08-30T08:50:30.641Z"
 }
