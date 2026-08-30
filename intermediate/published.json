@@ -37,7 +37,16 @@
       "noteId": "n72e0ce94f7ed",
       "url": "https://note.com/rapomaru666/n/n72e0ce94f7ed",
       "publishedAt": "2026-08-30T08:58:14.780Z"
+    },
+    "04": {
+      "number": "04",
+      "title": "post.jsonにnoteの記事データを作る方法【中級編④】",
+      "paid": true,
+      "price": 300,
+      "noteId": "n6ea446e1d363",
+      "url": "https://note.com/rapomaru666/n/n6ea446e1d363",
+      "publishedAt": "2026-08-30T08:59:37.652Z"
     }
   },
-  "updatedAt": "2026-08-30T08:58:14.780Z"
+  "updatedAt": "2026-08-30T08:59:37.652Z"
 }
