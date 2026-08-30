@@ -34,18 +34,39 @@ jobs:
       - name: Validate intermediate series before publishing
         run: node scripts/validate-intermediate.js
 
-      - name: Patch note crop dialog selector
+      - name: Patch note UI handling for intermediate publish
         run: |
           python - <<'PY'
           from pathlib import Path
           path = Path('scripts/post-note.js')
           text = path.read_text(encoding='utf-8')
-          old = "const cropDialog = page.getByRole('dialog').last();"
-          new = "const cropDialog = page.getByRole('dialog').filter({ hasText: /画像のサイズの変更/ }).first();"
-          if old not in text:
-              raise SystemExit('expected crop dialog selector was not found')
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
-          print('patched crop dialog selector')
+
+          replacements = [
+              (
+                  "const cropDialog = page.getByRole('dialog').last();",
+                  "const cropDialog = page.getByRole('dialog').filter({ hasText: /画像のサイズの変更/ }).first();"
+              ),
+              (
+                  """        console.log('一覧リンクは設定済みのため変更なし:', post.noteId);\n        return;""",
+                  """        console.log('一覧リンクは設定済み。公開版への反映確認へ進みます:', post.noteId);"""
+              ),
+              (
+                  """      // 再読込すると直前のリンク以外が公開版へ残らないため、\n      // 8本すべてを同じ編集セッション内で続けて設定する。\n      for (let i = 0; i < links.length; i++) {\n        await applyTextLink(page, editor, links[i]);\n        await page.waitForTimeout(500);\n      }""",
+                  """      // 再読込すると直前のリンク以外が公開版へ残らないため、\n      // 未設定の場合だけ同じ編集セッション内で続けて設定する。\n      if (!linksAlreadyComplete) {\n        for (let i = 0; i < links.length; i++) {\n          await applyTextLink(page, editor, links[i]);\n          await page.waitForTimeout(500);\n        }\n      }"""
+              ),
+              (
+                  """    if (post.preserveSettings === true) {\n      console.log('既存の公開設定を維持');\n    } else if (post.paid === true) {""",
+                  """    if (post.preserveSettings === true) {\n      console.log('既存の公開設定を維持');\n      await finalizePublishedUpdate(page);\n      const preservedUrl = `https://note.com/${post.noteAccount || 'rapomaru666'}/n/${post.noteId}`;\n      fs.writeFileSync('published-url.txt', preservedUrl, 'utf8');\n      await page.screenshot({ path: 'note-published.png', fullPage: true });\n      console.log('既存設定を維持して公開版を更新:', preservedUrl);\n      return;\n    } else if (post.paid === true) {"""
+              )
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit('expected runtime patch target was not found:\n' + old[:160])
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+          print('patched crop dialog and link-repair finalization')
           PY
 
       - name: Configure manifest commits
