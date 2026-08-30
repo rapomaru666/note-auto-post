@@ -64,7 +64,16 @@
       "noteId": "n8046e881e3cc",
       "url": "https://note.com/rapomaru666/n/n8046e881e3cc",
       "publishedAt": "2026-08-30T09:02:22.707Z"
+    },
+    "07": {
+      "number": "07",
+      "title": "300円の有料noteを自動投稿する方法【中級編⑦】",
+      "paid": true,
+      "price": 300,
+      "noteId": "n4b3e32367084",
+      "url": "https://note.com/rapomaru666/n/n4b3e32367084",
+      "publishedAt": "2026-08-30T09:03:58.441Z"
     }
   },
-  "updatedAt": "2026-08-30T09:02:22.707Z"
+  "updatedAt": "2026-08-30T09:03:58.441Z"
 }
