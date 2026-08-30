@@ -35,6 +35,26 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: Harden updater against note throttling
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('scripts/update-intermediate-private.js')
+          s = p.read_text(encoding='utf-8')
+          replacements = [
+            ('attempt < 45 && !done', 'attempt < 240 && !done'),
+            ('await sleep(10000);', 'await sleep(18000);'),
+            ('await sleep(12000);', 'await sleep(18000);'),
+            ('console.log(`[private-update] ${number} complete: ${publicUrl}`);\n      await sleep(1500);', 'console.log(`[private-update] ${number} complete: ${publicUrl}`);\n      await sleep(30000);')
+          ]
+          for old, new in replacements:
+            if old not in s:
+              raise SystemExit('runtime hardening target not found: ' + old)
+            s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+          print('private updater throttling hardening applied')
+          PY
+
       - name: Generate ephemeral transfer key
         run: |
           set -euo pipefail
