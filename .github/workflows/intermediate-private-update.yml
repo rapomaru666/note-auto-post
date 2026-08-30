@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: note-intermediate-private-update
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   update-private-content:
@@ -101,7 +101,8 @@ jobs:
           openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
             -pass file:/tmp/transfer-pass.txt \
             -in /tmp/transfer-data.enc \
-            -out /tmp/intermediate-private-payload.json
+            -out /tmp/intermediate-private-payload.json.xz
+          xz -dc /tmp/intermediate-private-payload.json.xz > /tmp/intermediate-private-payload.json
           node - <<'NODE'
           const fs=require('fs');
           const p=JSON.parse(fs.readFileSync('/tmp/intermediate-private-payload.json','utf8'));
@@ -148,4 +149,4 @@ jobs:
       - name: Destroy ephemeral plaintext
         if: always()
         run: |
-          rm -f /tmp/intermediate-transfer-private.pem /tmp/transfer-pass.txt /tmp/transfer-key.enc /tmp/transfer-data.enc /tmp/transfer-payload.json /tmp/intermediate-private-payload.json /tmp/private-update-progress.json /tmp/private-update-final.png
+          rm -f /tmp/intermediate-transfer-private.pem /tmp/transfer-pass.txt /tmp/transfer-key.enc /tmp/transfer-data.enc /tmp/transfer-payload.json /tmp/intermediate-private-payload.json.xz /tmp/intermediate-private-payload.json /tmp/private-update-progress.json /tmp/private-update-final.png
