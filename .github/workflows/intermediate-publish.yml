@@ -1,0 +1,127 @@
+name: Note Intermediate Publish
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/intermediate-publish.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: note-intermediate-publish
+  cancel-in-progress: false
+
+jobs:
+  publish-intermediate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate intermediate series before publishing
+        run: node scripts/validate-intermediate.js
+
+      - name: Configure manifest commits
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Publish 10 articles with resume protection
+        env:
+          NOTE_STORAGE_STATE: ${{ secrets.NOTE_STORAGE_STATE }}
+          HEADLESS: 'false'
+          USE_SYSTEM_CHROME: 'true'
+        run: |
+          set -euo pipefail
+
+          for number in 00 01 02 03 04 05 06 07 08 09; do
+            existing_url="$(node -e "const m=require('./intermediate/published.json'); process.stdout.write(m.articles?.['$number']?.url || '')")"
+            if [ -n "$existing_url" ]; then
+              echo "skip note-$number: already recorded as $existing_url"
+              continue
+            fi
+
+            echo "publish note-$number"
+            rm -f published-url.txt
+            POST_FILE="intermediate/note-$number.json" xvfb-run -a npm run post
+            test -s published-url.txt
+            published_url="$(tr -d '\r\n' < published-url.txt)"
+            node scripts/update-intermediate-manifest.js "$number" "$published_url"
+
+            git add intermediate/published.json
+            git commit -m "Record intermediate note $number URL"
+            git push
+          done
+
+      - name: Verify all articles were recorded
+        run: |
+          node - <<'NODE'
+          const m = require('./intermediate/published.json');
+          const required = Array.from({length: 10}, (_, i) => String(i).padStart(2, '0'));
+          const missing = required.filter(n => !m.articles?.[n]?.url || !m.articles?.[n]?.noteId);
+          if (missing.length) {
+            console.error('missing published records:', missing.join(', '));
+            process.exit(1);
+          }
+          console.log('all 10 articles recorded');
+          NODE
+
+      - name: Build INDEX and cross-link repairs
+        run: node scripts/build-intermediate-repairs.js
+
+      - name: Apply INDEX and article links without changing paid settings
+        env:
+          NOTE_STORAGE_STATE: ${{ secrets.NOTE_STORAGE_STATE }}
+          HEADLESS: 'false'
+          USE_SYSTEM_CHROME: 'true'
+        run: |
+          set -euo pipefail
+          repair_count="$(node -p "require('./intermediate/repair-links.json').repairs.length")"
+          for ((index=0; index<repair_count; index++)); do
+            echo "apply link repair $((index + 1))/$repair_count"
+            POST_FILE="intermediate/repair-links.json" POST_INDEX="$index" xvfb-run -a npm run post
+          done
+
+      - name: Mark series complete and commit audit files
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = 'intermediate/published.json';
+          const m = JSON.parse(fs.readFileSync(p, 'utf8'));
+          m.status = 'published-and-linked';
+          m.linkedAt = new Date().toISOString();
+          m.updatedAt = m.linkedAt;
+          fs.writeFileSync(p, JSON.stringify(m, null, 2) + '\n');
+          NODE
+          git add intermediate/published.json intermediate/repair-links.json
+          git commit -m "Complete intermediate note publishing and links" || true
+          git push
+
+      - name: Save publishing evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: intermediate-note-result-${{ github.run_number }}
+          path: |
+            intermediate/published.json
+            intermediate/repair-links.json
+            published-url.txt
+            note-published.png
+            note-debug.png
+            note-debug.html
+            note-crop-ready.png
+          if-no-files-found: ignore
+          retention-days: 5
