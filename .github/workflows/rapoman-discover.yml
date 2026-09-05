@@ -30,6 +30,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add rapoman/discovered-entries.json
+          git add rapoman/discovered-entries.json rapoman/discovered-summary.json rapoman/legacy-source
           git commit -m "Record RAPOMAN discovered entries" || exit 0
           git push
