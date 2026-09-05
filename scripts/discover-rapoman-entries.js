@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 
 function requiredEnv(name) {
   const value = process.env[name];
@@ -94,7 +95,31 @@ async function main() {
 
   const dedup = [...new Map(entries.map(e => [e.memberUrl || e.url || e.id, e])).values()]
     .sort((a,b) => String(a.published || '').localeCompare(String(b.published || '')));
-  fs.writeFileSync('rapoman/discovered-entries.json', JSON.stringify({ discoveredAt: new Date().toISOString(), entries: dedup }, null, 2) + '\n');
+  const discoveredAt = new Date().toISOString();
+  fs.writeFileSync('rapoman/discovered-entries.json', JSON.stringify({ discoveredAt, entries: dedup }, null, 2) + '\n');
+  fs.writeFileSync('rapoman/discovered-summary.json', JSON.stringify({
+    discoveredAt,
+    entries: dedup.map(e => ({
+      id: e.id,
+      title: e.title,
+      published: e.published,
+      updated: e.updated,
+      url: e.url,
+      memberUrl: e.memberUrl,
+      categories: e.categories,
+      contentType: e.contentType,
+      bodyLength: String(e.body || '').length
+    }))
+  }, null, 2) + '\n');
+
+  const dir = 'rapoman/legacy-source';
+  fs.rmSync(dir, { recursive: true, force: true });
+  fs.mkdirSync(dir, { recursive: true });
+  dedup.forEach((e, index) => {
+    const idTail = String(e.memberUrl || e.id || index).match(/(\d{8,})\/?$/)?.[1] || String(index + 1).padStart(3, '0');
+    fs.writeFileSync(path.join(dir, `entry-${idTail}.json`), JSON.stringify(e, null, 2) + '\n');
+  });
+
   console.log(`Discovered ${dedup.length} entries`);
   for (const e of dedup) console.log(`${e.published || ''}\t${e.title}\t${e.url}\t[${e.categories.join(', ')}]`);
 }
